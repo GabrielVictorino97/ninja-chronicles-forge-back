@@ -1,6 +1,6 @@
-﻿# Ninja Chronicles Forge — Backend
+﻿# Kage no Tessen: Shinobi Legacy — Backend
 
-API REST do jogo Kage no Tessen, MMORPG ninja baseado no universo de Naruto.
+API REST do jogo Kage no Tessen: Shinobi Legacy, MMORPG ninja baseado no universo de Naruto.
 
 ## Stack
 
@@ -33,7 +33,7 @@ Swagger em `https://localhost:7259/swagger`.
 
 ### Credenciais de admin
 
-- Email: `admin@KageNoTessen.gg`
+- Email: `admin@kagenotessen.gg`
 - Senha: `Admin123!`
 
 > Para produção, altere o `Jwt:Secret`, `Admin:Email` e `Admin:Password` no `appsettings.json` ou via variáveis de ambiente.

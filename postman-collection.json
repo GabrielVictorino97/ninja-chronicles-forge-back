@@ -1,0 +1,479 @@
+{
+  "info": {
+    "name": "Kage no Tessen: Shinobi Legacy",
+    "description": "API REST do jogo Kage no Tessen: Shinobi Legacy — MMORPG ninja baseado no universo de Naruto.\n\nBase URL: http://localhost:5271/api\nSwagger: https://localhost:7259/swagger",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "kage-no-tessen"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5271/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('token', json.accessToken);",
+                  "    console.log('Token set:', json.accessToken.substring(0, 20) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"novo@kagenotessen.gg\",\n  \"name\": \"Novo Jogador\",\n  \"password\": \"Senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Registra um novo usuário e retorna o token JWT.\n\nO token é automaticamente salvo na variável `token` da collection."
+          },
+          "response": []
+        },
+        {
+          "name": "Login (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('token', json.accessToken);",
+                  "    console.log('Token set:', json.accessToken.substring(0, 20) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@kagenotessen.gg\",\n  \"password\": \"Admin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login do admin. O token JWT é automaticamente salvo na variável `token` da collection."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"{{token}}\",\n  \"refreshToken\": \"COLE_SEU_REFRESH_TOKEN_AQUI\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Renova o token JWT usando o refresh token obtido no login/register."
+          },
+          "response": []
+        },
+        {
+          "name": "Meu Perfil",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["me"]
+            },
+            "description": "Retorna o perfil do usuário logado."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Personagens",
+      "item": [
+        {
+          "name": "Criar Personagem",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Naruto Uzumaki\",\n  \"avatar\": \"naruto.png\",\n  \"villageId\": \"konoha\",\n  \"clanId\": \"uzumaki\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/characters",
+              "host": ["{{baseUrl}}"],
+              "path": ["characters"]
+            },
+            "description": "Cria um novo personagem para o usuário logado.\n\n**Vilas válidas:** konoha, suna, kiri, kumo, iwa, ame, oto\n**Clãs válidos:** uchiha, hyuga, uzumaki, senju, nara, akimichi, aburame, inuzuka, yamanaka, hatake, kaguya, hoshigaki, hozuki, sarutobi"
+          },
+          "response": []
+        },
+        {
+          "name": "Meu Personagem",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/characters/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["characters", "me"]
+            },
+            "description": "Retorna o personagem do usuário logado."
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar Personagem por ID",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/characters/{{characterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["characters", "{{characterId}}"]
+            },
+            "description": "Busca um personagem público pelo ID (não requer autenticação)."
+          },
+          "response": []
+        },
+        {
+          "name": "Distribuir Atributos",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attributes\": {\n    \"taijutsu\": 2,\n    \"ninjutsu\": 1\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/characters/me/attributes",
+              "host": ["{{baseUrl}}"],
+              "path": ["characters", "me", "attributes"]
+            },
+            "description": "Distribui pontos de atributos do personagem logado.\n\n**Atributos válidos:** taijutsu, ninjutsu, genjutsu, intelligence, vitality, chakra, agility, luck"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Vilas e Clãs",
+      "item": [
+        {
+          "name": "Listar Vilas",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/villages",
+              "host": ["{{baseUrl}}"],
+              "path": ["villages"]
+            },
+            "description": "Lista todas as vilas ninja disponíveis (ordenadas por nome)."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Clãs",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/bloodline-clans",
+              "host": ["{{baseUrl}}"],
+              "path": ["bloodline-clans"]
+            },
+            "description": "Lista todos os clãs de sangue disponíveis (ordenados por nome)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Elementos",
+      "item": [
+        {
+          "name": "Listar Elementos",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/elements",
+              "host": ["{{baseUrl}}"],
+              "path": ["elements"]
+            },
+            "description": "Lista todos os elementos disponíveis e o nível necessário para aprender o próximo.\n\nProgressão: nível 20 para o 1º, 30 para o 2º, 40 para o 3º, etc."
+          },
+          "response": []
+        },
+        {
+          "name": "Aprender Elemento",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/elements/{{element}}/learn",
+              "host": ["{{baseUrl}}"],
+              "path": ["elements", "{{element}}", "learn"]
+            },
+            "description": "Aprende um elemento para o personagem logado.\n\n**Elementos válidos:** Katon, Suiton, Doton, Fuuton, Raiton\n\n**Progressão:**\n- Nível 20: 1º elemento\n- Nível 30: 2º elemento\n- Nível 40: 3º elemento\n- Nível 50: 4º elemento\n- Nível 60: 5º elemento"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Jutsus",
+      "item": [
+        {
+          "name": "Listar Jutsus",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/jutsus",
+              "host": ["{{baseUrl}}"],
+              "path": ["jutsus"]
+            },
+            "description": "Lista todos os jutsus disponíveis no jogo (ordenados por nível mínimo e nome)."
+          },
+          "response": []
+        },
+        {
+          "name": "Meus Jutsus",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/jutsus/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["jutsus", "me"]
+            },
+            "description": "Lista os jutsus aprendidos pelo personagem logado, com status de equipado."
+          },
+          "response": []
+        },
+        {
+          "name": "Aprender Jutsu",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/jutsus/{{jutsuId}}/learn",
+              "host": ["{{baseUrl}}"],
+              "path": ["jutsus", "{{jutsuId}}", "learn"]
+            },
+            "description": "O personagem logado aprende um jutsu pelo ID (GUID).\n\n**Restrições:**\n- Nível mínimo requerido\n- Graduação mínima requerida\n- Não pode aprender o mesmo jutsu duas vezes"
+          },
+          "response": []
+        },
+        {
+          "name": "Equipar Jutsu",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/jutsus/{{jutsuId}}/equip",
+              "host": ["{{baseUrl}}"],
+              "path": ["jutsus", "{{jutsuId}}", "equip"]
+            },
+            "description": "Equipa um jutsu já aprendido pelo ID (GUID).\n\nO jutsu precisa ter sido aprendido primeiro via POST /jutsus/{id}/learn."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Missões",
+      "item": [
+        {
+          "name": "Listar Missões",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/missions",
+              "host": ["{{baseUrl}}"],
+              "path": ["missions"]
+            },
+            "description": "Lista todas as missões disponíveis (ordenadas por rank, nível mínimo e título)."
+          },
+          "response": []
+        },
+        {
+          "name": "Iniciar Missão",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/missions/{{missionId}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["missions", "{{missionId}}", "start"]
+            },
+            "description": "Inicia uma missão para o personagem logado.\n\n**Restrições:**\n- Não pode ter a mesma missão já ativa\n- Não pode estar em caçada\n- Precisa ter energia suficiente\n- Nível e graduação mínimos requeridos"
+          },
+          "response": []
+        },
+        {
+          "name": "Concluir Missão",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/missions/{{missionId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["missions", "{{missionId}}", "complete"]
+            },
+            "description": "Conclui uma missão iniciada e recebe as recompensas (XP, Ryous, drops).\n\nSe a missão tem duração (DurationMinutes > 0), é preciso aguardar o tempo antes de concluir.\n\n**Durações por rank:**\n- Rank D: 1-2 min\n- Rank C: 5 min\n- Rank B: 15 min\n- Rank A: 30 min\n- Rank S: 60 min\n\nMissões de longa duração podem levar de 60 a 1200 minutos (20h)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Caçadas",
+      "item": [
+        {
+          "name": "Status da Caçada",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/hunts/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["hunts", "status"]
+            },
+            "description": "Retorna o status da caçada atual (ativa ou não), tempo restante, durações disponíveis e tempo total disponível hoje.\n\n**Campos de tempo disponível:**\n- `todayHuntsUsed`: quantas caçadas já foram feitas hoje\n- `todayHuntsRemaining`: quantas caçadas ainda pode fazer (limite diário: 10)\n- `totalAvailableMinutes`: minutos totais que ainda pode caçar hoje (restantes × duração máxima por nível)\n- `availableDurations`: durações individuais disponíveis (5, 10, 15, ... até o máximo do nível)"
+          },
+          "response": []
+        },
+        {
+          "name": "Iniciar Caçada",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"durationMinutes\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/hunts/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["hunts", "start"]
+            },
+            "description": "Inicia uma caçada (PvE) com duração escolhida.\n\n**Duração:** 5 a 50 minutos, múltiplos de 5. O máximo é limitado pelo `totalAvailableMinutes` (minutos restantes hoje).\n\n**Bônus (caçadas mais curtas rendem mais por minuto):**\n- 5 min: +50% de recompensa\n- 10 min: +30%\n- 15 min: +15%\n- 20 min: +5%\n- 25+ min: recompensa base\n\n**Restrições:**\n- Limite de 10 caçadas por dia\n- Apenas 1 caçada ativa por vez\n- Caçada ativa bloqueia missões\n- A duração não pode ultrapassar o total de minutos disponíveis hoje\n- Recompensas aleatórias baseadas no nível de caçada"
+          },
+          "response": []
+        },
+        {
+          "name": "Concluir Caçada",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/hunts/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["hunts", "complete"]
+            },
+            "description": "Conclui a caçada ativa se o tempo já tiver expirado e recebe as recompensas (XP + Ryous)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Loja e Inventário",
+      "item": [
+        {
+          "name": "Listar Itens da Loja",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/shop/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["shop", "items"]
+            },
+            "description": "Lista todos os itens disponíveis na loja (ordenados por tipo e raridade)."
+          },
+          "response": []
+        },
+        {
+          "name": "Comprar Item",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/shop/buy/{{itemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["shop", "buy", "{{itemId}}"]
+            },
+            "description": "Compra um item da loja para o personagem logado.\n\n**Restrições:**\n- Precisa ter Ryous suficiente\n- O item vai para o inventário do personagem"
+          },
+          "response": []
+        },
+        {
+          "name": "Meu Inventário",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/inventory",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory"]
+            },
+            "description": "Lista os itens no inventário do personagem logado (com quantidade e status de equipado)."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

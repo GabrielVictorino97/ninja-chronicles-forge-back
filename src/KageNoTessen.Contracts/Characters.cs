@@ -40,6 +40,8 @@ public record HuntStatusDto(
     bool Active, int HuntLevel, int DurationMinutes,
     int XpReward, int RyousReward,
     DateTime StartTime, DateTime EndTime, int SecondsRemaining,
-    int[] AvailableDurations);
+    int[] AvailableDurations,
+    int TodayHuntsUsed, int TodayHuntsRemaining,
+    int TotalAvailableMinutes);
 
 public record HuntRewardDto(int Xp, int Ryous, int DurationMinutes);

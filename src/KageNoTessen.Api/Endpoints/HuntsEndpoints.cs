@@ -14,7 +14,7 @@ public class GetHuntStatusEndpoint : EndpointWithoutRequest<HuntStatusDto>
         Get("hunts/status");
         Description(d => d
             .WithName("StatusCacada")
-            .WithSummary("Retorna o status da caçada atual e as durações disponíveis"));
+            .WithSummary("Retorna o status da caçada atual, tempo disponível hoje e as durações disponíveis"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -25,14 +25,23 @@ public class GetHuntStatusEndpoint : EndpointWithoutRequest<HuntStatusDto>
         if (c is null) { await SendNotFoundAsync(ct); return; }
 
         var maxDuration = Math.Min(50, ((c.Level - 1) / 5 + 1) * 5);
-        var availableDurations = Enumerable.Range(1, maxDuration / 5).Select(i => i * 5).ToArray();
+        var baseDurations = Enumerable.Range(1, maxDuration / 5).Select(i => i * 5);
 
         var repo = Resolve<ICharacterHuntRepository>();
+        var todayCount = await repo.CountTodayAsync(c.Id, ct);
+        var todayRemaining = Math.Max(0, 10 - todayCount);
+        var totalAvailableMinutes = todayRemaining * maxDuration;
+
+        var availableDurations = baseDurations
+            .Where(d => d <= totalAvailableMinutes)
+            .ToArray();
+
         var hunt = await repo.GetActiveAsync(c.Id, ct);
         if (hunt is null)
         {
             await SendOkAsync(new HuntStatusDto(false, 0, 0, 0, 0,
-                DateTime.MinValue, DateTime.MinValue, 0, availableDurations), ct);
+                DateTime.MinValue, DateTime.MinValue, 0, availableDurations,
+                todayCount, todayRemaining, totalAvailableMinutes), ct);
             return;
         }
 
@@ -40,7 +49,8 @@ public class GetHuntStatusEndpoint : EndpointWithoutRequest<HuntStatusDto>
         await SendOkAsync(new HuntStatusDto(true, hunt.HuntLevel, hunt.DurationMinutes,
             hunt.XpReward, hunt.RyousReward,
             hunt.StartTime, hunt.EndTime, Math.Max(0, remaining),
-            availableDurations), ct);
+            availableDurations,
+            todayCount, todayRemaining, totalAvailableMinutes), ct);
     }
 }
 
@@ -69,14 +79,6 @@ public class StartHuntEndpoint : Endpoint<StartHuntRequest>
             return;
         }
 
-        var maxDuration = Math.Min(50, ((c.Level - 1) / 5 + 1) * 5);
-        if (req.DurationMinutes > maxDuration)
-        {
-            AddError("duration", $"Duracao maxima para seu nivel ({c.Level}): {maxDuration} minutos.");
-            await SendErrorsAsync(cancellation: ct);
-            return;
-        }
-
         var huntRepo = Resolve<ICharacterHuntRepository>();
         if (await huntRepo.GetActiveAsync(c.Id, ct) is not null)
         {
@@ -89,6 +91,15 @@ public class StartHuntEndpoint : Endpoint<StartHuntRequest>
         if (todayCount >= 10)
         {
             AddError("hunt", "Limite diario de 10 cacadas atingido. Volte amanha.");
+            await SendErrorsAsync(cancellation: ct);
+            return;
+        }
+
+        var maxDuration = Math.Min(50, ((c.Level - 1) / 5 + 1) * 5);
+        var totalAvailableMinutes = (10 - todayCount) * maxDuration;
+        if (req.DurationMinutes > totalAvailableMinutes)
+        {
+            AddError("duration", $"Duracao excede o tempo total disponivel hoje ({totalAvailableMinutes} minutos). Restam {10 - todayCount} cacada(s).");
             await SendErrorsAsync(cancellation: ct);
             return;
         }
