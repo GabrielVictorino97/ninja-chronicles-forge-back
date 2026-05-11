@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/NarutoPlayers.Api/Dockerfile
+    ports:
+      - "5000:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - ConnectionStrings__Default=Host=postgres;Database=naruto_players;Username=naruto;Password=naruto123
+      - Redis__ConnectionString=redis:6379
+      - Jwt__Secret=${JWT_SECRET:-super-secret-key-change-in-production-min-32-chars}
+      - Jwt__Issuer=NarutoPlayers
+      - Jwt__Audience=NarutoPlayers
+      - Jwt__ExpiryMinutes=60
+      - Cors__Origins=http://localhost:5173
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: naruto_players
+      POSTGRES_USER: naruto
+      POSTGRES_PASSWORD: naruto123
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U naruto -d naruto_players"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

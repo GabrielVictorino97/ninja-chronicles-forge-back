@@ -1,0 +1,82 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+*.swp
+*.seed
+*.tmp
+*.bak
+*.orig
+.vs/
+.vscode/
+_ReSharper.Caches/
+packages/
+TestResults/
+*.nupkg
+*.snupkg
+
+# NuGet
+**/[Pp]ackages/*
+!**/[Pp]ackages/repositories.config
+*.nuget.props
+*.nuget.targets
+
+# Rider
+.idea/
+
+# Environment
+.env
+.env.local
+.env.production
+.env.staging
+
+# App settings with secrets (keep Example template)
+appsettings.Development.json
+appsettings.*.local.json
+secrets.json
+appsettings.Production.json
+
+# Docker (keep template files only if they exist)
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+serilog/
+diagnostics/
+
+# OS
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# EF Core Migrations backup
+*.MigrationBackup.*
+
+# Database
+*.db
+*.mdf
+*.ldf
+*.sqlite3
+
+# Node (if frontend ever joins)
+node_modules/
+dist/
+.next/
+
+# Terraform / IaC
+.terraform/
+
+# Temp / coverage
+coverage/
+*.lcov
+*.coverage
+report/
+
+# JetBrains
+*.DotSettings.user
