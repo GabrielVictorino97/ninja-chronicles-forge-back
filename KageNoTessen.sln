@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{706C1D81-74C3-4076-A863-A8FF8FBCD9C5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KageNoTessen.Domain", "src\KageNoTessen.Domain\KageNoTessen.Domain.csproj", "{7E6F6587-FBC8-4F76-9DC3-EF4762EE8DBD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KageNoTessen.Application", "src\KageNoTessen.Application\KageNoTessen.Application.csproj", "{3FEC1528-EF7F-4A46-A41C-17EFDE813D65}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KageNoTessen.Contracts", "src\KageNoTessen.Contracts\KageNoTessen.Contracts.csproj", "{69DAB0A3-6723-4493-924D-ECC590B831C5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KageNoTessen.Infrastructure", "src\KageNoTessen.Infrastructure\KageNoTessen.Infrastructure.csproj", "{0CAE8BC9-9FFC-476D-A0BB-F6ABE7CD4688}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KageNoTessen.Api", "src\KageNoTessen.Api\KageNoTessen.Api.csproj", "{30A3A86F-E651-4901-ABDB-3E4A27DC1525}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7E6F6587-FBC8-4F76-9DC3-EF4762EE8DBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E6F6587-FBC8-4F76-9DC3-EF4762EE8DBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E6F6587-FBC8-4F76-9DC3-EF4762EE8DBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E6F6587-FBC8-4F76-9DC3-EF4762EE8DBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3FEC1528-EF7F-4A46-A41C-17EFDE813D65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3FEC1528-EF7F-4A46-A41C-17EFDE813D65}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3FEC1528-EF7F-4A46-A41C-17EFDE813D65}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3FEC1528-EF7F-4A46-A41C-17EFDE813D65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69DAB0A3-6723-4493-924D-ECC590B831C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69DAB0A3-6723-4493-924D-ECC590B831C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69DAB0A3-6723-4493-924D-ECC590B831C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69DAB0A3-6723-4493-924D-ECC590B831C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CAE8BC9-9FFC-476D-A0BB-F6ABE7CD4688}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CAE8BC9-9FFC-476D-A0BB-F6ABE7CD4688}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CAE8BC9-9FFC-476D-A0BB-F6ABE7CD4688}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CAE8BC9-9FFC-476D-A0BB-F6ABE7CD4688}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30A3A86F-E651-4901-ABDB-3E4A27DC1525}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30A3A86F-E651-4901-ABDB-3E4A27DC1525}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30A3A86F-E651-4901-ABDB-3E4A27DC1525}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30A3A86F-E651-4901-ABDB-3E4A27DC1525}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7E6F6587-FBC8-4F76-9DC3-EF4762EE8DBD} = {706C1D81-74C3-4076-A863-A8FF8FBCD9C5}
+		{3FEC1528-EF7F-4A46-A41C-17EFDE813D65} = {706C1D81-74C3-4076-A863-A8FF8FBCD9C5}
+		{69DAB0A3-6723-4493-924D-ECC590B831C5} = {706C1D81-74C3-4076-A863-A8FF8FBCD9C5}
+		{0CAE8BC9-9FFC-476D-A0BB-F6ABE7CD4688} = {706C1D81-74C3-4076-A863-A8FF8FBCD9C5}
+		{30A3A86F-E651-4901-ABDB-3E4A27DC1525} = {706C1D81-74C3-4076-A863-A8FF8FBCD9C5}
+	EndGlobalSection
+EndGlobal

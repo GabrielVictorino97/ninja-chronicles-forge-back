@@ -1,0 +1,29 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace KageNoTessen.Infrastructure.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddDurationMinutesToHunt : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<int>(
+                name: "DurationMinutes",
+                table: "CharacterHunts",
+                type: "integer",
+                nullable: false,
+                defaultValue: 0);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "DurationMinutes",
+                table: "CharacterHunts");
+        }
+    }
+}

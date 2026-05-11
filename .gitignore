@@ -78,5 +78,8 @@ coverage/
 *.coverage
 report/
 
+# Claude Code
+.claude/
+
 # JetBrains
 *.DotSettings.user

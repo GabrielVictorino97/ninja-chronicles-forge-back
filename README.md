@@ -1,6 +1,6 @@
-# Ninja Chronicles Forge — Backend
+﻿# Ninja Chronicles Forge — Backend
 
-API REST do jogo Naruto Players, MMORPG ninja baseado no universo de Naruto.
+API REST do jogo Kage no Tessen, MMORPG ninja baseado no universo de Naruto.
 
 ## Stack
 
@@ -25,7 +25,7 @@ API REST do jogo Naruto Players, MMORPG ninja baseado no universo de Naruto.
 docker compose up -d
 
 # Rodar API (aplica migrations + seeds automaticamente)
-cd src/NarutoPlayers.Api
+cd src/KageNoTessen.Api
 dotnet run
 ```
 
@@ -33,7 +33,7 @@ Swagger em `https://localhost:7259/swagger`.
 
 ### Credenciais de admin
 
-- Email: `admin@narutoplayers.gg`
+- Email: `admin@KageNoTessen.gg`
 - Senha: `Admin123!`
 
 > Para produção, altere o `Jwt:Secret`, `Admin:Email` e `Admin:Password` no `appsettings.json` ou via variáveis de ambiente.
@@ -42,11 +42,11 @@ Swagger em `https://localhost:7259/swagger`.
 
 ```
 src/
-├── NarutoPlayers.Domain/         # Entidades, enums, value objects
-├── NarutoPlayers.Application/    # Commands, queries, handlers
-├── NarutoPlayers.Contracts/      # DTOs (Requests/Responses)
-├── NarutoPlayers.Infrastructure/ # EF Core, repositórios, serviços
-└── NarutoPlayers.Api/            # Endpoints FastEndpoints, Program.cs
+├── KageNoTessen.Domain/         # Entidades, enums, value objects
+├── KageNoTessen.Application/    # Commands, queries, handlers
+├── KageNoTessen.Contracts/      # DTOs (Requests/Responses)
+├── KageNoTessen.Infrastructure/ # EF Core, repositórios, serviços
+└── KageNoTessen.Api/            # Endpoints FastEndpoints, Program.cs
 ```
 
 ## Endpoints
@@ -121,12 +121,12 @@ O seed inicial popula:
 ```bash
 # Criar
 dotnet ef migrations add Nome \
-  --project src/NarutoPlayers.Infrastructure \
-  --startup-project src/NarutoPlayers.Api
+  --project src/KageNoTessen.Infrastructure \
+  --startup-project src/KageNoTessen.Api
 
 # A API aplica automaticamente ao iniciar via `db.Database.MigrateAsync()`
 ```
 
 ## Integração com Frontend
 
-Os DTOs em `NarutoPlayers.Contracts` mantêm os mesmos formatos dos types TypeScript do frontend. JSON serializado em camelCase por padrão.
+Os DTOs em `KageNoTessen.Contracts` mantêm os mesmos formatos dos types TypeScript do frontend. JSON serializado em camelCase por padrão.
