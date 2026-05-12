@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using FastEndpoints;
 using MediatR;
@@ -93,7 +93,7 @@ public class UpdateAttributesEndpoint : Endpoint<UpdateAttributesRequest, Charac
 {
     public override void Configure()
     {
-        Put("characters/me/attributes");
+        Put("characters/{characterId:guid}/attributes");
         Description(d => d
             .WithName("AtualizarAtributos")
             .WithSummary("Distribui pontos de atributos do personagem logado")
@@ -103,8 +103,11 @@ public class UpdateAttributesEndpoint : Endpoint<UpdateAttributesRequest, Charac
     public override async Task HandleAsync(UpdateAttributesRequest req, CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
-        var character = await Resolve<IMediator>().Send(new GetMyCharacterQuery(userId), ct);
-        if (character is null) { await SendNotFoundAsync(ct); return; }
+        var characterId = Route<Guid>("characterId");
+        var charRepo = Resolve<ICharacterRepository>();
+        var character = await charRepo.GetByUserIdAsync(userId, ct);
+        if (character is null || character.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         if (req.Attributes is null || req.Attributes.Count == 0)
         {
@@ -124,8 +127,16 @@ public class UpdateAttributesEndpoint : Endpoint<UpdateAttributesRequest, Charac
             }
         }
 
-        var cmd = new UpdateAttributesCommand(Guid.Parse(character.Id), req.Attributes);
-        var result = await Resolve<IMediator>().Send(cmd, ct);
-        await SendOkAsync(result, ct);
+        try
+        {
+            var cmd = new UpdateAttributesCommand(characterId, req.Attributes);
+            var result = await Resolve<IMediator>().Send(cmd, ct);
+            await SendOkAsync(result, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            AddError("attributes", ex.Message);
+            await SendErrorsAsync(cancellation: ct);
+        }
     }
 }

@@ -60,8 +60,14 @@ public class GetItemsEndpoint : EndpointWithoutRequest<IEnumerable<Contracts.Sho
     {
         var repo = Resolve<IItemRepository>();
         var items = await repo.ListAsync(ct);
-        await SendOkAsync(items.OrderBy(i => i.Type).ThenBy(i => i.Rarity).Select(i => new Contracts.Shop.ItemDto(
-            i.Id.ToString(), i.Name, i.Type.ToString(), i.Rarity.ToString(),
-            i.Description, i.Price, i.Icon)), ct);
+        await SendOkAsync(items.OrderBy(i => i.Type).ThenBy(i => i.Rarity).Select(i =>
+        {
+            var bonus = new Contracts.Shop.ItemBonusDto(
+                i.AttackBonus, i.DefenseBonus, i.IntelligenceBonus,
+                i.AgilityBonus, i.VitalityBonus, i.ChakraBonus, i.LuckBonus);
+            return new Contracts.Shop.ItemDto(
+                i.Id.ToString(), i.Name, i.Type.ToString(), i.Rarity.ToString(),
+                i.Description, i.Price, i.Icon, bonus);
+        }), ct);
     }
 }

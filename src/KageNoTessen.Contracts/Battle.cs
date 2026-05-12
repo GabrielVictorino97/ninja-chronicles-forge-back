@@ -17,3 +17,13 @@ public record StatusEffectDto(string Actor, string Name, int Turns);
 public record BattleAction(string Action, string? JutsuName = null);
 
 public record BattleActionResult(BattleDto Battle, string[]? Rewards = null);
+
+public record NpcBattleRequest(string Difficulty);
+
+public record PvpBattleRequest(string TargetName);
+
+public record BattleResultDto(
+    string Result, string EnemyName, int EnemyLevel,
+    string Difficulty, int XpReward, int RyousReward,
+    int PlayerLevel, string PlayerGraduation,
+    int PlayerPower, int EnemyPower, string PowerComparison);

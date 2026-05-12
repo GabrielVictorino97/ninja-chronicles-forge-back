@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using FastEndpoints;
 using KageNoTessen.Application.Interfaces;
@@ -30,20 +30,20 @@ public class GetElementsEndpoint : EndpointWithoutRequest<IEnumerable<ElementDto
         };
 
         var userIdClaim = HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-        var learnedCount = 0;
+        var learned = new HashSet<ElementAffinity>();
         if (userIdClaim is not null)
         {
             var charRepo = Resolve<ICharacterRepository>();
             var c = await charRepo.GetByUserIdAsync(Guid.Parse(userIdClaim), ct);
             if (c is not null)
             {
-                var elemRepo = Resolve<ICharacterElementRepository>();
-                learnedCount = await elemRepo.CountByCharacterAsync(c.Id, ct);
+                learned = c.CharacterElements.Select(ce => ce.Element).ToHashSet();
             }
         }
 
-        var nextLevel = 20 + learnedCount * 10;
-        await SendOkAsync(elements.Select(e => new ElementDto(e.Name, e.Desc, nextLevel)), ct);
+        var nextLevel = 20 + learned.Count * 7;
+        await SendOkAsync(elements.Select(e => new ElementDto(e.Name, e.Desc, nextLevel,
+            learned.Contains(Enum.Parse<ElementAffinity>(e.Name)))), ct);
     }
 }
 
@@ -51,18 +51,20 @@ public class LearnElementEndpoint : EndpointWithoutRequest
 {
     public override void Configure()
     {
-        Post("elements/{element}/learn");
+        Post("characters/{characterId:guid}/elements/{element}/learn");
         Description(d => d
             .WithName("AprenderElemento")
-            .WithSummary("Aprende um elemento. Requer nível 20 para o 1º elemento, 30 para o 2º, 40 para o 3º, etc."));
+            .WithSummary("Aprende um elemento. Progressao: nivel 20 (1º), 27 (2º), 34 (3º), 41 (4º), 48 (5º)."));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
         var charRepo = Resolve<ICharacterRepository>();
         var c = await charRepo.GetByUserIdAsync(userId, ct);
-        if (c is null) { await SendNotFoundAsync(ct); return; }
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         var elementName = Route<string>("element");
         if (!Enum.TryParse<ElementAffinity>(elementName, true, out var element)
@@ -85,7 +87,7 @@ public class LearnElementEndpoint : EndpointWithoutRequest
         }
 
         var learnedCount = await elemRepo.CountByCharacterAsync(c.Id, ct);
-        var requiredLevel = 20 + learnedCount * 10;
+        var requiredLevel = 20 + learnedCount * 7;
         if (c.Level < requiredLevel)
         {
             AddError("level", $"Nível insuficiente. Necessário nível {requiredLevel} para aprender o {(learnedCount + 1)}º elemento. Seu nível: {c.Level}.");

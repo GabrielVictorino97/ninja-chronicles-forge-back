@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using FastEndpoints;
 using KageNoTessen.Application.Interfaces;
@@ -11,7 +11,7 @@ public class GetHuntStatusEndpoint : EndpointWithoutRequest<HuntStatusDto>
 {
     public override void Configure()
     {
-        Get("hunts/status");
+        Get("characters/{characterId:guid}/hunts/status");
         Description(d => d
             .WithName("StatusCacada")
             .WithSummary("Retorna o status da caçada atual, tempo disponível hoje e as durações disponíveis"));
@@ -20,9 +20,11 @@ public class GetHuntStatusEndpoint : EndpointWithoutRequest<HuntStatusDto>
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
         var charRepo = Resolve<ICharacterRepository>();
         var c = await charRepo.GetByUserIdAsync(userId, ct);
-        if (c is null) { await SendNotFoundAsync(ct); return; }
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         var maxDuration = Math.Min(50, ((c.Level - 1) / 5 + 1) * 5);
         var baseDurations = Enumerable.Range(1, maxDuration / 5).Select(i => i * 5);
@@ -36,7 +38,7 @@ public class GetHuntStatusEndpoint : EndpointWithoutRequest<HuntStatusDto>
             .Where(d => d <= totalAvailableMinutes)
             .ToArray();
 
-        var hunt = await repo.GetActiveAsync(c.Id, ct);
+        var hunt = await repo.GetPendingCompleteAsync(c.Id, ct);
         if (hunt is null)
         {
             await SendOkAsync(new HuntStatusDto(false, 0, 0, 0, 0,
@@ -45,8 +47,9 @@ public class GetHuntStatusEndpoint : EndpointWithoutRequest<HuntStatusDto>
             return;
         }
 
-        var remaining = (int)(hunt.EndTime - DateTime.UtcNow).TotalSeconds;
-        await SendOkAsync(new HuntStatusDto(true, hunt.HuntLevel, hunt.DurationMinutes,
+        var active = !hunt.IsExpired();
+        var remaining = active ? (int)(hunt.EndTime - DateTime.UtcNow).TotalSeconds : 0;
+        await SendOkAsync(new HuntStatusDto(active, hunt.HuntLevel, hunt.DurationMinutes,
             hunt.XpReward, hunt.RyousReward,
             hunt.StartTime, hunt.EndTime, Math.Max(0, remaining),
             availableDurations,
@@ -58,7 +61,7 @@ public class StartHuntEndpoint : Endpoint<StartHuntRequest>
 {
     public override void Configure()
     {
-        Post("hunts/start");
+        Post("characters/{characterId:guid}/hunts/start");
         Description(d => d
             .WithName("IniciarCacada")
             .WithSummary("Inicia uma caçada. Duração em minutos (5-50, múltiplos de 5). Caçadas mais curtas têm bônus de recompensa.")
@@ -68,9 +71,11 @@ public class StartHuntEndpoint : Endpoint<StartHuntRequest>
     public override async Task HandleAsync(StartHuntRequest req, CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
         var charRepo = Resolve<ICharacterRepository>();
         var c = await charRepo.GetByUserIdAsync(userId, ct);
-        if (c is null) { await SendNotFoundAsync(ct); return; }
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         if (req.DurationMinutes < 5 || req.DurationMinutes > 50 || req.DurationMinutes % 5 != 0)
         {
@@ -79,10 +84,25 @@ public class StartHuntEndpoint : Endpoint<StartHuntRequest>
             return;
         }
 
-        var huntRepo = Resolve<ICharacterHuntRepository>();
-        if (await huntRepo.GetActiveAsync(c.Id, ct) is not null)
+        var missionRepo = Resolve<ICharacterMissionRepository>();
+        if (await missionRepo.HasAnyActiveMissionAsync(c.Id, ct))
         {
-            AddError("hunt", "Voce ja esta em uma cacada. Conclua ou aguarde o tempo expirar.");
+            AddError("mission", "Voce esta em uma missao. Conclua a missao primeiro antes de iniciar uma cacada.");
+            await SendErrorsAsync(cancellation: ct);
+            return;
+        }
+
+        var huntRepo = Resolve<ICharacterHuntRepository>();
+        if (await huntRepo.GetPendingCompleteAsync(c.Id, ct) is not null)
+        {
+            AddError("hunt", "Voce ja tem uma cacada pendente. Conclua a cacada primeiro antes de iniciar outra.");
+            await SendErrorsAsync(cancellation: ct);
+            return;
+        }
+
+        if (!c.SpendEnergy(10))
+        {
+            AddError("energy", $"Energia insuficiente. Necessario: 10, atual: {c.Energy}.");
             await SendErrorsAsync(cancellation: ct);
             return;
         }
@@ -108,18 +128,16 @@ public class StartHuntEndpoint : Endpoint<StartHuntRequest>
         var huntLevel = Math.Min(10, (c.Level - 1) / 5 + 1);
         var rng = new Random();
 
-        // Base reward per 5min block (random between min and max based on hunt level)
         var xpPerBlock = rng.Next(huntLevel * 20, huntLevel * 40 + 1);
         var ryousPerBlock = rng.Next(huntLevel * 30, huntLevel * 70 + 1);
 
-        // Bonus multiplier: shorter hunts give better rewards per minute
         var bonus = blocks switch
         {
-            1 => 1.5,   //  5 min → +50%
-            2 => 1.3,   // 10 min → +30%
-            3 => 1.15,  // 15 min → +15%
-            4 => 1.05,  // 20 min → +5%
-            _ => 1.0,   // 25+ min → base
+            1 => 1.5,
+            2 => 1.3,
+            3 => 1.15,
+            4 => 1.05,
+            _ => 1.0,
         };
 
         var totalXp = (int)(xpPerBlock * blocks * bonus);
@@ -135,7 +153,7 @@ public class CompleteHuntEndpoint : EndpointWithoutRequest<HuntRewardDto>
 {
     public override void Configure()
     {
-        Post("hunts/complete");
+        Post("characters/{characterId:guid}/hunts/complete");
         Description(d => d
             .WithName("ConcluirCacada")
             .WithSummary("Conclui a caçada ativa se o tempo tiver passado e recebe as recompensas"));
@@ -144,15 +162,17 @@ public class CompleteHuntEndpoint : EndpointWithoutRequest<HuntRewardDto>
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
         var charRepo = Resolve<ICharacterRepository>();
         var c = await charRepo.GetByUserIdAsync(userId, ct);
-        if (c is null) { await SendNotFoundAsync(ct); return; }
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         var huntRepo = Resolve<ICharacterHuntRepository>();
-        var hunt = await huntRepo.GetActiveAsync(c.Id, ct);
+        var hunt = await huntRepo.GetPendingCompleteAsync(c.Id, ct);
         if (hunt is null)
         {
-            AddError("hunt", "Nenhuma cacada ativa. Use POST /api/hunts/start para iniciar.");
+            AddError("hunt", "Nenhuma cacada ativa. Use POST /api/characters/{characterId}/hunts/start para iniciar.");
             await SendErrorsAsync(cancellation: ct);
             return;
         }

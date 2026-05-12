@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using FastEndpoints;
 using KageNoTessen.Application.Interfaces;
@@ -36,18 +36,20 @@ public class GetMyJutsusEndpoint : EndpointWithoutRequest<IEnumerable<CharacterJ
 {
     public override void Configure()
     {
-        Get("jutsus/me");
+        Get("characters/{characterId:guid}/jutsus");
         Description(d => d
             .WithName("MeusJutsus")
-            .WithSummary("Lista os jutsus aprendidos pelo personagem logado"));
+            .WithSummary("Lista os jutsus aprendidos pelo personagem"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
         var charRepo = Resolve<ICharacterRepository>();
         var c = await charRepo.GetByUserIdAsync(userId, ct);
-        if (c is null) { await SendNotFoundAsync(ct); return; }
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         var repo = Resolve<ICharacterJutsuRepository>();
         var learned = await repo.GetLearnedAsync(c.Id, ct);
@@ -62,18 +64,20 @@ public class LearnJutsuEndpoint : EndpointWithoutRequest
 {
     public override void Configure()
     {
-        Post("jutsus/{id:guid}/learn");
+        Post("characters/{characterId:guid}/jutsus/{id:guid}/learn");
         Description(d => d
             .WithName("AprenderJutsu")
-            .WithSummary("O personagem logado aprende um jutsu pelo ID na URL"));
+            .WithSummary("O personagem aprende um jutsu pelo ID na URL"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
         var charRepo = Resolve<ICharacterRepository>();
-        var c = await charRepo.GetWithDetailsAsync(userId, ct);
-        if (c is null) { await SendNotFoundAsync(ct); return; }
+        var c = await charRepo.GetByUserIdAsync(userId, ct);
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         var jutsuId = Route<Guid>("id");
         var jutsuRepo = Resolve<IJutsuRepository>();
@@ -117,7 +121,7 @@ public class EquipJutsuEndpoint : EndpointWithoutRequest
 {
     public override void Configure()
     {
-        Post("jutsus/{id:guid}/equip");
+        Post("characters/{characterId:guid}/jutsus/{id:guid}/equip");
         Description(d => d
             .WithName("EquiparJutsu")
             .WithSummary("Equipa um jutsu ja aprendido pelo ID na URL"));
@@ -126,16 +130,17 @@ public class EquipJutsuEndpoint : EndpointWithoutRequest
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
         var charRepo = Resolve<ICharacterRepository>();
         var c = await charRepo.GetByUserIdAsync(userId, ct);
-        if (c is null) { await SendNotFoundAsync(ct); return; }
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         var jutsuId = Route<Guid>("id");
-        var repo = Resolve<ICharacterJutsuRepository>();
-        var cj = await repo.GetByCharacterAndJutsuAsync(c.Id, jutsuId, ct);
+        var cj = c.CharacterJutsus.FirstOrDefault(cj => cj.JutsuId == jutsuId);
         if (cj is null)
         {
-            AddError("jutsu", $"Voce ainda nao aprendeu esse jutsu (ID: {jutsuId}). Use POST /api/jutsus/{jutsuId}/learn primeiro.");
+            AddError("jutsu", $"Voce ainda nao aprendeu esse jutsu (ID: {jutsuId}). Use POST /api/characters/{c.Id}/jutsus/{jutsuId}/learn primeiro.");
             await SendErrorsAsync(cancellation: ct);
             return;
         }
@@ -148,6 +153,49 @@ public class EquipJutsuEndpoint : EndpointWithoutRequest
         }
 
         cj.Equip();
+        var repo = Resolve<ICharacterJutsuRepository>();
+        await repo.UpdateAsync(cj, ct);
+        await SendOkAsync(ct);
+    }
+}
+
+public class UnequipJutsuEndpoint : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Post("characters/{characterId:guid}/jutsus/{id:guid}/unequip");
+        Description(d => d
+            .WithName("DesequiparJutsu")
+            .WithSummary("Desequipa um jutsu que esta equipado pelo ID na URL"));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
+        var charRepo = Resolve<ICharacterRepository>();
+        var c = await charRepo.GetByUserIdAsync(userId, ct);
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
+
+        var jutsuId = Route<Guid>("id");
+        var cj = c.CharacterJutsus.FirstOrDefault(cj => cj.JutsuId == jutsuId);
+        if (cj is null)
+        {
+            AddError("jutsu", $"Voce ainda nao aprendeu esse jutsu (ID: {jutsuId}). Use POST /api/characters/{c.Id}/jutsus/{jutsuId}/learn primeiro.");
+            await SendErrorsAsync(cancellation: ct);
+            return;
+        }
+
+        if (!cj.Equipped)
+        {
+            AddError("jutsu", "Esse jutsu nao esta equipado.");
+            await SendErrorsAsync(cancellation: ct);
+            return;
+        }
+
+        cj.Unequip();
+        var repo = Resolve<ICharacterJutsuRepository>();
         await repo.UpdateAsync(cj, ct);
         await SendOkAsync(ct);
     }
@@ -181,18 +229,20 @@ public class StartMissionEndpoint : EndpointWithoutRequest
 {
     public override void Configure()
     {
-        Post("missions/{id:guid}/start");
+        Post("characters/{characterId:guid}/missions/{id:guid}/start");
         Description(d => d
             .WithName("IniciarMissao")
-            .WithSummary("Inicia uma missao para o personagem logado pelo ID na URL"));
+            .WithSummary("Inicia uma missao para o personagem pelo ID na URL"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
         var charRepo = Resolve<ICharacterRepository>();
         var c = await charRepo.GetByUserIdAsync(userId, ct);
-        if (c is null) { await SendNotFoundAsync(ct); return; }
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         var missionId = Route<Guid>("id");
         var missionRepo = Resolve<IMissionRepository>();
@@ -245,7 +295,7 @@ public class CompleteMissionEndpoint : EndpointWithoutRequest<CompleteMissionRes
 {
     public override void Configure()
     {
-        Post("missions/{id:guid}/complete");
+        Post("characters/{characterId:guid}/missions/{id:guid}/complete");
         Description(d => d
             .WithName("ConcluirMissao")
             .WithSummary("Conclui uma missao iniciada e recebe as recompensas"));
@@ -254,16 +304,18 @@ public class CompleteMissionEndpoint : EndpointWithoutRequest<CompleteMissionRes
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
         var charRepo = Resolve<ICharacterRepository>();
         var c = await charRepo.GetByUserIdAsync(userId, ct);
-        if (c is null) { await SendNotFoundAsync(ct); return; }
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         var missionId = Route<Guid>("id");
         var cmRepo = Resolve<ICharacterMissionRepository>();
         var cm = await cmRepo.GetActiveAsync(c.Id, missionId, ct);
         if (cm is null)
         {
-            AddError("mission", "Missao nao iniciada ou ja concluida. Use POST /missions/{id}/start primeiro.");
+            AddError("mission", "Missao nao iniciada ou ja concluida. Use POST /api/characters/{c.Id}/missions/{missionId}/start primeiro.");
             await SendErrorsAsync(cancellation: ct);
             return;
         }
@@ -301,18 +353,20 @@ public class BuyItemEndpoint : EndpointWithoutRequest
 {
     public override void Configure()
     {
-        Post("shop/buy/{id:guid}");
+        Post("characters/{characterId:guid}/shop/buy/{id:guid}");
         Description(d => d
             .WithName("ComprarItem")
-            .WithSummary("Compra um item da loja para o personagem logado pelo ID na URL"));
+            .WithSummary("Compra um item da loja para o personagem pelo ID na URL"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
         var charRepo = Resolve<ICharacterRepository>();
-        var c = await charRepo.GetWithDetailsAsync(userId, ct);
-        if (c is null) { await SendNotFoundAsync(ct); return; }
+        var c = await charRepo.GetByUserIdAsync(userId, ct);
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         var itemId = Route<Guid>("id");
         var itemRepo = Resolve<IItemRepository>();
@@ -332,12 +386,45 @@ public class BuyItemEndpoint : EndpointWithoutRequest
         }
 
         var invRepo = Resolve<IInventoryRepository>();
-        var existing = await invRepo.GetByCharacterAndItemAsync(c.Id, itemId, ct);
+        var existing = c.Inventory.FirstOrDefault(i => i.ItemId == itemId);
+        InventoryItem invItem;
         if (existing is not null)
+        {
             existing.AddQuantity(1);
+            invItem = existing;
+        }
         else
-            await invRepo.AddAsync(InventoryItem.Acquire(c.Id, itemId), ct);
+        {
+            invItem = await invRepo.AddAsync(InventoryItem.Acquire(c.Id, itemId), ct);
+        }
 
+        if (item.Equippable && !invItem.Equipped)
+        {
+            var allItems = c.Inventory.ToList();
+            if (existing is null) allItems.Add(invItem);
+
+            EquipSlot? slot = item.Type switch
+            {
+                ItemType.Weapon => EquipSlot.Weapon,
+                ItemType.Armor => EquipSlot.Armor,
+                ItemType.Tool => EquipSlot.Tool,
+                ItemType.Summon => EquipSlot.Summon,
+                ItemType.Accessory => InventoryHelper.ResolveAccessorySlot(allItems),
+                _ => null
+            };
+
+            if (slot is not null)
+            {
+                var conflicting = allItems.FirstOrDefault(i => i.Equipped && i.Slot == slot && i.Id != invItem.Id);
+                if (conflicting is not null)
+                {
+                    conflicting.Unequip();
+                }
+                invItem.Equip(slot.Value);
+            }
+        }
+
+        await invRepo.UpdateAsync(invItem, ct);
         await charRepo.UpdateAsync(c, ct);
         await SendOkAsync(ct);
     }
@@ -347,22 +434,159 @@ public class GetInventoryEndpoint : EndpointWithoutRequest<IEnumerable<Contracts
 {
     public override void Configure()
     {
-        Get("inventory");
+        Get("characters/{characterId:guid}/inventory");
         Description(d => d
             .WithName("MeuInventario")
-            .WithSummary("Lista os itens no inventario do personagem logado"));
+            .WithSummary("Lista os itens no inventario do personagem"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
         var charRepo = Resolve<ICharacterRepository>();
         var c = await charRepo.GetByUserIdAsync(userId, ct);
-        if (c is null) { await SendNotFoundAsync(ct); return; }
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
 
         var repo = Resolve<IInventoryRepository>();
         var items = await repo.GetByCharacterAsync(c.Id, ct);
-        await SendOkAsync(items.Select(i => new Contracts.Shop.InventoryItemDto(
-            i.ItemId.ToString(), i.Quantity, i.Equipped, i.Slot?.ToString())), ct);
+        await SendOkAsync(items.Select(i =>
+        {
+            var bonus = new Contracts.Shop.ItemBonusDto(
+                i.Item.AttackBonus, i.Item.DefenseBonus, i.Item.IntelligenceBonus,
+                i.Item.AgilityBonus, i.Item.VitalityBonus, i.Item.ChakraBonus, i.Item.LuckBonus);
+            return new Contracts.Shop.InventoryItemDto(
+                i.ItemId.ToString(), i.Item.Name, i.Item.Type.ToString(), i.Item.Rarity.ToString(),
+                i.Item.Icon, i.Quantity, i.Equipped, i.Slot?.ToString(), bonus);
+        }), ct);
+    }
+}
+
+public class EquipItemEndpoint : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Post("characters/{characterId:guid}/inventory/{itemId:guid}/equip");
+        Description(d => d
+            .WithName("EquiparItem")
+            .WithSummary("Equipa um item do inventario. Substitui automaticamente o item do mesmo tipo se ja estiver equipado."));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
+        var charRepo = Resolve<ICharacterRepository>();
+        var c = await charRepo.GetByUserIdAsync(userId, ct);
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
+
+        var itemId = Route<Guid>("itemId");
+        var allItems = c.Inventory.ToList();
+
+        var inv = allItems.FirstOrDefault(i => i.ItemId == itemId);
+        if (inv is null)
+        {
+            AddError("item", "Item nao encontrado no inventario.");
+            await SendErrorsAsync(cancellation: ct);
+            return;
+        }
+
+        if (!inv.Item.Equippable)
+        {
+            AddError("item", "Esse item nao pode ser equipado.");
+            await SendErrorsAsync(cancellation: ct);
+            return;
+        }
+
+        if (inv.Equipped)
+        {
+            AddError("item", "Esse item ja esta equipado.");
+            await SendErrorsAsync(cancellation: ct);
+            return;
+        }
+
+        var slot = inv.Item.Type switch
+        {
+            ItemType.Weapon => EquipSlot.Weapon,
+            ItemType.Armor => EquipSlot.Armor,
+            ItemType.Tool => EquipSlot.Tool,
+            ItemType.Summon => EquipSlot.Summon,
+            ItemType.Accessory => InventoryHelper.ResolveAccessorySlot(allItems),
+            _ => (EquipSlot?)null
+        };
+
+        if (slot is null)
+        {
+            AddError("item", $"Itens do tipo {inv.Item.Type} nao podem ser equipados.");
+            await SendErrorsAsync(cancellation: ct);
+            return;
+        }
+
+        var conflicting = allItems.FirstOrDefault(i => i.Equipped && i.Slot == slot && i.Id != inv.Id);
+        if (conflicting is not null)
+        {
+            conflicting.Unequip();
+        }
+
+        inv.Equip(slot.Value);
+        var invRepo = Resolve<IInventoryRepository>();
+        await invRepo.UpdateAsync(inv, ct);
+        await SendOkAsync(ct);
+    }
+}
+
+internal static class InventoryHelper
+{
+    public static EquipSlot ResolveAccessorySlot(List<InventoryItem> allItems)
+    {
+        var used = allItems.Where(i => i.Equipped && (i.Slot == EquipSlot.Accessory1 || i.Slot == EquipSlot.Accessory2))
+            .Select(i => i.Slot).ToHashSet();
+        if (!used.Contains(EquipSlot.Accessory1)) return EquipSlot.Accessory1;
+        if (!used.Contains(EquipSlot.Accessory2)) return EquipSlot.Accessory2;
+        return EquipSlot.Accessory1;
+    }
+}
+
+public class UnequipItemEndpoint : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Post("characters/{characterId:guid}/inventory/{itemId:guid}/unequip");
+        Description(d => d
+            .WithName("DesequiparItem")
+            .WithSummary("Desequipa um item do inventario"));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var characterId = Route<Guid>("characterId");
+        var charRepo = Resolve<ICharacterRepository>();
+        var c = await charRepo.GetByUserIdAsync(userId, ct);
+        if (c is null || c.Id != characterId)
+        { AddError("character", "Personagem nao encontrado ou nao pertence a sua conta."); await SendErrorsAsync(cancellation: ct); return; }
+
+        var itemId = Route<Guid>("itemId");
+        var inv = c.Inventory.FirstOrDefault(i => i.ItemId == itemId);
+        if (inv is null)
+        {
+            AddError("item", "Item nao encontrado no inventario.");
+            await SendErrorsAsync(cancellation: ct);
+            return;
+        }
+
+        if (!inv.Equipped)
+        {
+            AddError("item", "Esse item nao esta equipado.");
+            await SendErrorsAsync(cancellation: ct);
+            return;
+        }
+
+        inv.Unequip();
+        var invRepo = Resolve<IInventoryRepository>();
+        await invRepo.UpdateAsync(inv, ct);
+        await SendOkAsync(ct);
     }
 }

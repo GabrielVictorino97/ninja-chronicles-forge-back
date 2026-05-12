@@ -95,12 +95,22 @@ public class Item : AuditableEntity
     public Graduation MinGraduation { get; set; } = Graduation.Estudante;
     public bool Active { get; set; } = true;
 
+    public int AttackBonus { get; set; }
+    public int DefenseBonus { get; set; }
+    public int IntelligenceBonus { get; set; }
+    public int AgilityBonus { get; set; }
+    public int VitalityBonus { get; set; }
+    public int ChakraBonus { get; set; }
+    public int LuckBonus { get; set; }
+
     public ICollection<InventoryItem> Inventories { get; private set; } = new List<InventoryItem>();
 
     private Item() { }
 
     public static Item Create(string name, ItemType type, ItemRarity rarity, string description, int price, string icon)
         => new() { Name = name, Type = type, Rarity = rarity, Description = description, Price = price, Icon = icon };
+
+    public int TotalBonus() => AttackBonus + DefenseBonus + IntelligenceBonus + AgilityBonus + VitalityBonus + ChakraBonus + LuckBonus;
 }
 
 public class InventoryItem : BaseEntity

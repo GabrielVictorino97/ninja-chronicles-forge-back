@@ -56,34 +56,37 @@ public class CharacterHandler :
 
         if (c.UnspentPoints <= 0) throw new InvalidOperationException("No unspent points");
 
+        var validKeys = new HashSet<string> { "taijutsu", "ninjutsu", "genjutsu", "intelligence", "vitality", "chakra", "agility", "luck" };
         var attr = c.Attributes;
-        var changes = new Dictionary<string, int>
-        {
-            ["taijutsu"] = 0, ["ninjutsu"] = 0, ["genjutsu"] = 0,
-            ["intelligence"] = 0, ["vitality"] = 0, ["chakra"] = 0,
-            ["agility"] = 0, ["luck"] = 0,
-        };
 
         foreach (var (key, value) in cmd.Attributes)
         {
-            var k = key.ToLowerInvariant();
-            if (!changes.ContainsKey(k)) continue;
-            var diff = value - GetAttr(attr, k);
-            changes[k] = diff;
+            if (!validKeys.Contains(key.ToLowerInvariant()))
+                throw new InvalidOperationException($"Invalid attribute: {key}");
+            if (value < 0)
+                throw new InvalidOperationException("Cannot decrease attributes");
         }
 
-        var total = changes.Values.Sum();
+        var total = cmd.Attributes.Values.Sum();
         if (total > c.UnspentPoints) throw new InvalidOperationException("Not enough points");
-        if (changes.Values.Any(d => d < 0)) throw new InvalidOperationException("Cannot decrease attributes");
 
-        attr.Taijutsu += changes["taijutsu"];
-        attr.Ninjutsu += changes["ninjutsu"];
-        attr.Genjutsu += changes["genjutsu"];
-        attr.Intelligence += changes["intelligence"];
-        attr.Vitality += changes["vitality"];
-        attr.Chakra += changes["chakra"];
-        attr.Agility += changes["agility"];
-        attr.Luck += changes["luck"];
+        foreach (var (key, value) in cmd.Attributes)
+        {
+            if (value == 0) continue;
+            _ = key.ToLowerInvariant() switch
+            {
+                "taijutsu" => attr.Taijutsu += value,
+                "ninjutsu" => attr.Ninjutsu += value,
+                "genjutsu" => attr.Genjutsu += value,
+                "intelligence" => attr.Intelligence += value,
+                "vitality" => attr.Vitality += value,
+                "chakra" => attr.Chakra += value,
+                "agility" => attr.Agility += value,
+                "luck" => attr.Luck += value,
+                _ => 0
+            };
+        }
+
         c.SpendPoints(total);
         c.ApplyDerivedAttributes();
         await _characters.UpdateAsync(c, ct);
@@ -102,15 +105,6 @@ public class CharacterHandler :
         var c = await _characters.GetWithDetailsAsync(query.CharacterId, ct);
         return c is null ? null : Map(c);
     }
-
-    private static int GetAttr(CharacterAttributes a, string key) => key switch
-    {
-        "taijutsu" => a.Taijutsu, "ninjutsu" => a.Ninjutsu,
-        "genjutsu" => a.Genjutsu, "intelligence" => a.Intelligence,
-        "vitality" => a.Vitality, "chakra" => a.Chakra,
-        "agility" => a.Agility, "luck" => a.Luck,
-        _ => throw new ArgumentException($"Unknown attribute: {key}")
-    };
 
     private CharacterDto Map(Character c) => new(
         c.Id.ToString(), c.UserId.ToString(), c.Name, c.Avatar,

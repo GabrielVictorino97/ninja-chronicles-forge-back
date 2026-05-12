@@ -3,6 +3,7 @@ using System;
 using KageNoTessen.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KageNoTessen.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260512000912_AddLastPvPAttackedAt")]
+    partial class AddLastPvPAttackedAt
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -715,23 +718,11 @@ namespace KageNoTessen.Infrastructure.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("AgilityBonus")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("AttackBonus")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ChakraBonus")
-                        .HasColumnType("integer");
-
                     b.Property<bool>("Consumable")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("DefenseBonus")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -743,12 +734,6 @@ namespace KageNoTessen.Infrastructure.Migrations
                     b.Property<string>("Icon")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int>("IntelligenceBonus")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("LuckBonus")
-                        .HasColumnType("integer");
 
                     b.Property<int>("MinGraduation")
                         .HasColumnType("integer");
@@ -779,9 +764,6 @@ namespace KageNoTessen.Infrastructure.Migrations
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("VitalityBonus")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

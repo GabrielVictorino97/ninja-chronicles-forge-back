@@ -13,6 +13,7 @@ public interface ICharacterRepository : IRepository<Character>
 {
     Task<Character?> GetWithDetailsAsync(Guid id, CancellationToken ct = default);
     Task<Character?> GetByUserIdAsync(Guid userId, CancellationToken ct = default);
+    Task<Character?> GetByNameAsync(string name, CancellationToken ct = default);
     Task<List<Character>> GetByUserIdAllAsync(Guid userId, CancellationToken ct = default);
 }
 
@@ -55,6 +56,7 @@ public interface IMissionRepository : IRepository<Mission>
 public interface ICharacterMissionRepository : IRepository<CharacterMission>
 {
     Task<CharacterMission?> GetActiveAsync(Guid characterId, Guid missionId, CancellationToken ct = default);
+    Task<bool> HasAnyActiveMissionAsync(Guid characterId, CancellationToken ct = default);
     Task<List<CharacterMission>> GetHistoryAsync(Guid characterId, CancellationToken ct = default);
     Task<CharacterMission?> GetLastCompletedAsync(Guid characterId, Guid missionId, CancellationToken ct = default);
 }
@@ -105,6 +107,7 @@ public interface INotificationRepository : IRepository<Notification>
 public interface ICharacterHuntRepository : IRepository<CharacterHunt>
 {
     Task<CharacterHunt?> GetActiveAsync(Guid characterId, CancellationToken ct = default);
+    Task<CharacterHunt?> GetPendingCompleteAsync(Guid characterId, CancellationToken ct = default);
     Task<int> CountTodayAsync(Guid characterId, CancellationToken ct = default);
 }
 

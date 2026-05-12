@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using KageNoTessen.Application.Interfaces;
 using KageNoTessen.Domain;
 
@@ -16,10 +16,10 @@ public class BaseRepository<T> : IRepository<T> where T : BaseEntity
     }
 
     public virtual async Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await Set.FindAsync([id], ct);
+        => await Set.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id, ct);
 
     public virtual async Task<List<T>> ListAsync(CancellationToken ct = default)
-        => await Set.ToListAsync(ct);
+        => await Set.AsNoTracking().ToListAsync(ct);
 
     public virtual async Task<T> AddAsync(T entity, CancellationToken ct = default)
     {
@@ -46,7 +46,7 @@ public class RefreshTokenRepository : BaseRepository<RefreshToken>, IRefreshToke
     public RefreshTokenRepository(AppDbContext db) : base(db) { }
 
     public async Task<RefreshToken?> GetByTokenAsync(string token, CancellationToken ct = default)
-        => await Set.FirstOrDefaultAsync(rt => rt.Token == token, ct);
+        => await Set.AsNoTracking().FirstOrDefaultAsync(rt => rt.Token == token, ct);
 
     public async Task RevokeAllForUserAsync(Guid userId, CancellationToken ct = default)
         => await Set.Where(rt => rt.UserId == userId && !rt.Revoked)
@@ -58,7 +58,7 @@ public class UserRepository : BaseRepository<User>, IUserRepository
     public UserRepository(AppDbContext db) : base(db) { }
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
-        => await Set.FirstOrDefaultAsync(u => u.Email == email.ToLowerInvariant(), ct);
+        => await Set.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email.ToLowerInvariant(), ct);
 
     public async Task<bool> EmailExistsAsync(string email, CancellationToken ct = default)
         => await Set.AnyAsync(u => u.Email == email.ToLowerInvariant(), ct);
@@ -84,10 +84,23 @@ public class CharacterRepository : BaseRepository<Character>, ICharacterReposito
             .Include(c => c.Clan)
             .Include(c => c.Wallet)
             .Include(c => c.CharacterElements)
+            .Include(c => c.CharacterJutsus).ThenInclude(cj => cj.Jutsu)
+            .Include(c => c.Inventory).ThenInclude(i => i.Item)
             .FirstOrDefaultAsync(c => c.UserId == userId && c.Active, ct);
 
+    public async Task<Character?> GetByNameAsync(string name, CancellationToken ct = default)
+        => await Set
+            .Include(c => c.Attributes)
+            .Include(c => c.Village)
+            .Include(c => c.Clan)
+            .Include(c => c.Wallet)
+            .Include(c => c.CharacterElements)
+            .Include(c => c.CharacterJutsus).ThenInclude(cj => cj.Jutsu)
+            .Include(c => c.Inventory).ThenInclude(i => i.Item)
+            .FirstOrDefaultAsync(c => c.Name == name && c.Active, ct);
+
     public async Task<List<Character>> GetByUserIdAllAsync(Guid userId, CancellationToken ct = default)
-        => await Set.Where(c => c.UserId == userId).ToListAsync(ct);
+        => await Set.AsNoTracking().Where(c => c.UserId == userId).ToListAsync(ct);
 }
 
 public class JutsuRepository : BaseRepository<Jutsu>, IJutsuRepository
@@ -95,10 +108,10 @@ public class JutsuRepository : BaseRepository<Jutsu>, IJutsuRepository
     public JutsuRepository(AppDbContext db) : base(db) { }
 
     public Task<Jutsu?> GetWithDetailsAsync(Guid id, CancellationToken ct = default)
-        => Set.FirstOrDefaultAsync(j => j.Id == id, ct);
+        => Set.AsNoTracking().FirstOrDefaultAsync(j => j.Id == id, ct);
 
     public async Task<List<Jutsu>> GetAvailableForCharacterAsync(Guid characterId, CancellationToken ct = default)
-        => await Set.Where(j => j.Active).ToListAsync(ct);
+        => await Set.AsNoTracking().Where(j => j.Active).ToListAsync(ct);
 }
 
 public class CharacterElementRepository : BaseRepository<CharacterElement>, ICharacterElementRepository
@@ -106,10 +119,10 @@ public class CharacterElementRepository : BaseRepository<CharacterElement>, ICha
     public CharacterElementRepository(AppDbContext db) : base(db) { }
 
     public async Task<List<CharacterElement>> GetByCharacterAsync(Guid characterId, CancellationToken ct = default)
-        => await Set.Where(ce => ce.CharacterId == characterId).ToListAsync(ct);
+        => await Set.AsNoTracking().Where(ce => ce.CharacterId == characterId).ToListAsync(ct);
 
     public async Task<CharacterElement?> GetByCharacterAndElementAsync(Guid characterId, ElementAffinity element, CancellationToken ct = default)
-        => await Set.FirstOrDefaultAsync(ce => ce.CharacterId == characterId && ce.Element == element, ct);
+        => await Set.AsNoTracking().FirstOrDefaultAsync(ce => ce.CharacterId == characterId && ce.Element == element, ct);
 
     public Task<int> CountByCharacterAsync(Guid characterId, CancellationToken ct = default)
         => Set.CountAsync(ce => ce.CharacterId == characterId, ct);
@@ -120,13 +133,13 @@ public class CharacterJutsuRepository : BaseRepository<CharacterJutsu>, ICharact
     public CharacterJutsuRepository(AppDbContext db) : base(db) { }
 
     public async Task<CharacterJutsu?> GetByCharacterAndJutsuAsync(Guid characterId, Guid jutsuId, CancellationToken ct = default)
-        => await Set.FirstOrDefaultAsync(cj => cj.CharacterId == characterId && cj.JutsuId == jutsuId, ct);
+        => await Set.AsNoTracking().FirstOrDefaultAsync(cj => cj.CharacterId == characterId && cj.JutsuId == jutsuId, ct);
 
     public async Task<List<CharacterJutsu>> GetEquippedAsync(Guid characterId, CancellationToken ct = default)
-        => await Set.Include(cj => cj.Jutsu).Where(cj => cj.CharacterId == characterId && cj.Equipped).ToListAsync(ct);
+        => await Set.AsNoTracking().Include(cj => cj.Jutsu).Where(cj => cj.CharacterId == characterId && cj.Equipped).ToListAsync(ct);
 
     public async Task<List<CharacterJutsu>> GetLearnedAsync(Guid characterId, CancellationToken ct = default)
-        => await Set.Include(cj => cj.Jutsu).Where(cj => cj.CharacterId == characterId).ToListAsync(ct);
+        => await Set.AsNoTracking().Include(cj => cj.Jutsu).Where(cj => cj.CharacterId == characterId).ToListAsync(ct);
 
     public Task<int> CountEquippedAsync(Guid characterId, CancellationToken ct = default)
         => Set.CountAsync(cj => cj.CharacterId == characterId && cj.Equipped, ct);
@@ -137,17 +150,20 @@ public class CharacterMissionRepository : BaseRepository<CharacterMission>, ICha
     public CharacterMissionRepository(AppDbContext db) : base(db) { }
 
     public async Task<CharacterMission?> GetActiveAsync(Guid characterId, Guid missionId, CancellationToken ct = default)
-        => await Set.FirstOrDefaultAsync(cm =>
+        => await Set.AsNoTracking().FirstOrDefaultAsync(cm =>
             cm.CharacterId == characterId && cm.MissionId == missionId && !cm.Completed, ct);
 
+    public Task<bool> HasAnyActiveMissionAsync(Guid characterId, CancellationToken ct = default)
+        => Set.AsNoTracking().AnyAsync(cm => cm.CharacterId == characterId && !cm.Completed, ct);
+
     public async Task<List<CharacterMission>> GetHistoryAsync(Guid characterId, CancellationToken ct = default)
-        => await Set.Include(cm => cm.Mission)
+        => await Set.AsNoTracking().Include(cm => cm.Mission)
             .Where(cm => cm.CharacterId == characterId && cm.Completed)
             .OrderByDescending(cm => cm.CompletedAt)
             .Take(50).ToListAsync(ct);
 
     public async Task<CharacterMission?> GetLastCompletedAsync(Guid characterId, Guid missionId, CancellationToken ct = default)
-        => await Set.Where(cm => cm.CharacterId == characterId && cm.MissionId == missionId && cm.Completed)
+        => await Set.AsNoTracking().Where(cm => cm.CharacterId == characterId && cm.MissionId == missionId && cm.Completed)
             .OrderByDescending(cm => cm.CompletedAt)
             .FirstOrDefaultAsync(ct);
 }
@@ -157,11 +173,11 @@ public class BattleRepository : BaseRepository<Battle>, IBattleRepository
     public BattleRepository(AppDbContext db) : base(db) { }
 
     public async Task<Battle?> GetWithDetailsAsync(Guid id, CancellationToken ct = default)
-        => await Set.Include(b => b.Participants).Include(b => b.Logs)
+        => await Set.AsNoTracking().Include(b => b.Participants).Include(b => b.Logs)
             .FirstOrDefaultAsync(b => b.Id == id, ct);
 
     public async Task<List<Battle>> GetHistoryAsync(Guid characterId, int limit = 20, CancellationToken ct = default)
-        => await Set.Include(b => b.Participants)
+        => await Set.AsNoTracking().Include(b => b.Participants)
             .Where(b => b.Participants.Any(p => p.CharacterId == characterId))
             .OrderByDescending(b => b.CreatedAt)
             .Take(limit).ToListAsync(ct);
@@ -172,12 +188,12 @@ public class InventoryRepository : BaseRepository<InventoryItem>, IInventoryRepo
     public InventoryRepository(AppDbContext db) : base(db) { }
 
     public async Task<List<InventoryItem>> GetByCharacterAsync(Guid characterId, CancellationToken ct = default)
-        => await Set.Include(i => i.Item)
+        => await Set.AsNoTracking().Include(i => i.Item)
             .Where(i => i.CharacterId == characterId && i.Quantity > 0)
             .ToListAsync(ct);
 
     public async Task<InventoryItem?> GetByCharacterAndItemAsync(Guid characterId, Guid itemId, CancellationToken ct = default)
-        => await Set.FirstOrDefaultAsync(i => i.CharacterId == characterId && i.ItemId == itemId, ct);
+        => await Set.AsNoTracking().Include(i => i.Item).FirstOrDefaultAsync(i => i.CharacterId == characterId && i.ItemId == itemId, ct);
 }
 
 public class WalletRepository : BaseRepository<Wallet>, IWalletRepository
@@ -185,7 +201,7 @@ public class WalletRepository : BaseRepository<Wallet>, IWalletRepository
     public WalletRepository(AppDbContext db) : base(db) { }
 
     public Task<Wallet?> GetByCharacterIdAsync(Guid characterId, CancellationToken ct = default)
-        => Set.FirstOrDefaultAsync(w => w.CharacterId == characterId, ct);
+        => Set.AsNoTracking().FirstOrDefaultAsync(w => w.CharacterId == characterId, ct);
 }
 
 public class TransactionRepository : BaseRepository<Transaction>, ITransactionRepository
@@ -193,7 +209,7 @@ public class TransactionRepository : BaseRepository<Transaction>, ITransactionRe
     public TransactionRepository(AppDbContext db) : base(db) { }
 
     public async Task<List<Transaction>> GetByCharacterAsync(Guid characterId, int limit = 50, CancellationToken ct = default)
-        => await Set.Where(t => t.Wallet.CharacterId == characterId)
+        => await Set.AsNoTracking().Where(t => t.Wallet.CharacterId == characterId)
             .OrderByDescending(t => t.CreatedAt).Take(limit).ToListAsync(ct);
 }
 
@@ -202,15 +218,15 @@ public class PlayerClanRepository : BaseRepository<PlayerClan>, IPlayerClanRepos
     public PlayerClanRepository(AppDbContext db) : base(db) { }
 
     public async Task<PlayerClan?> GetWithMembersAsync(Guid id, CancellationToken ct = default)
-        => await Set.Include(c => c.Members).Include(c => c.Wall)
+        => await Set.AsNoTracking().Include(c => c.Members).Include(c => c.Wall)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
     public async Task<PlayerClan?> GetByCharacterIdAsync(Guid characterId, CancellationToken ct = default)
-        => await Set.Include(c => c.Members)
+        => await Set.AsNoTracking().Include(c => c.Members)
             .FirstOrDefaultAsync(c => c.Members.Any(m => m.CharacterId == characterId), ct);
 
     public async Task<List<PlayerClan>> GetRankingAsync(int limit = 100, CancellationToken ct = default)
-        => await Set.OrderByDescending(c => c.Level).ThenByDescending(c => c.Xp).Take(limit).ToListAsync(ct);
+        => await Set.AsNoTracking().OrderByDescending(c => c.Level).ThenByDescending(c => c.Xp).Take(limit).ToListAsync(ct);
 }
 
 public class NotificationRepository : BaseRepository<Notification>, INotificationRepository
@@ -218,7 +234,7 @@ public class NotificationRepository : BaseRepository<Notification>, INotificatio
     public NotificationRepository(AppDbContext db) : base(db) { }
 
     public async Task<List<Notification>> GetByUserIdAsync(Guid userId, int limit = 50, CancellationToken ct = default)
-        => await Set.Where(n => n.UserId == userId)
+        => await Set.AsNoTracking().Where(n => n.UserId == userId)
             .OrderByDescending(n => n.CreatedAt).Take(limit).ToListAsync(ct);
 }
 
@@ -227,29 +243,28 @@ public class GameEventRepository : BaseRepository<GameEvent>, IGameEventReposito
     public GameEventRepository(AppDbContext db) : base(db) { }
 
     public Task<List<GameEvent>> GetActiveAsync(CancellationToken ct = default)
-        => Set.Where(e => e.Status == EventStatus.Ongoing).ToListAsync(ct);
+        => Set.AsNoTracking().Where(e => e.Status == EventStatus.Ongoing).ToListAsync(ct);
 }
 
-// Simple repositories that don't add extra methods beyond IRepository<T>
 public class VillageRepository : BaseRepository<Village>, IVillageRepository
 {
     public VillageRepository(AppDbContext db) : base(db) { }
     public async Task<Village?> GetByNameAsync(string name, CancellationToken ct = default)
-        => await Set.FirstOrDefaultAsync(v => v.Name == name, ct);
+        => await Set.AsNoTracking().FirstOrDefaultAsync(v => v.Name == name, ct);
 }
 
 public class BloodlineClanRepository : BaseRepository<BloodlineClan>, IBloodlineClanRepository
 {
     public BloodlineClanRepository(AppDbContext db) : base(db) { }
     public async Task<BloodlineClan?> GetByNameAsync(string name, CancellationToken ct = default)
-        => await Set.FirstOrDefaultAsync(c => c.Name == name, ct);
+        => await Set.AsNoTracking().FirstOrDefaultAsync(c => c.Name == name, ct);
 }
 public class MissionRepository : BaseRepository<Mission>, IMissionRepository
 {
     public MissionRepository(AppDbContext db) : base(db) { }
 
     public async Task<List<Mission>> GetAvailableForCharacterAsync(Guid characterId, CancellationToken ct = default)
-        => await Db.Missions.Where(m => m.Active).ToListAsync(ct);
+        => await Db.Missions.AsNoTracking().Where(m => m.Active).ToListAsync(ct);
 }
 public class ItemRepository : BaseRepository<Item>, IItemRepository { public ItemRepository(AppDbContext db) : base(db) { } }
 public class WorldLocationRepository : BaseRepository<WorldLocation>, IWorldLocationRepository { public WorldLocationRepository(AppDbContext db) : base(db) { } }
@@ -258,7 +273,10 @@ public class CharacterHuntRepository : BaseRepository<CharacterHunt>, ICharacter
     public CharacterHuntRepository(AppDbContext db) : base(db) { }
 
     public async Task<CharacterHunt?> GetActiveAsync(Guid characterId, CancellationToken ct = default)
-        => await Set.FirstOrDefaultAsync(h => h.CharacterId == characterId && !h.Completed, ct);
+        => await Set.AsNoTracking().FirstOrDefaultAsync(h => h.CharacterId == characterId && !h.Completed && h.EndTime > DateTime.UtcNow, ct);
+
+    public async Task<CharacterHunt?> GetPendingCompleteAsync(Guid characterId, CancellationToken ct = default)
+        => await Set.AsNoTracking().FirstOrDefaultAsync(h => h.CharacterId == characterId && !h.Completed, ct);
 
     public Task<int> CountTodayAsync(Guid characterId, CancellationToken ct = default)
     {

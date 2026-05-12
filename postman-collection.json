@@ -15,6 +15,11 @@
       "key": "token",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "characterId",
+      "value": "",
+      "type": "string"
     }
   ],
   "auth": {
@@ -164,6 +169,21 @@
         },
         {
           "name": "Meu Personagem",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('characterId', json.id);",
+                  "    console.log('characterId set:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": {
@@ -171,7 +191,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["characters", "me"]
             },
-            "description": "Retorna o personagem do usuário logado."
+            "description": "Retorna o personagem do usuário logado e salva automaticamente o ID na variável `characterId` da collection."
           },
           "response": []
         },
@@ -201,11 +221,11 @@
               "raw": "{\n  \"attributes\": {\n    \"taijutsu\": 2,\n    \"ninjutsu\": 1\n  }\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/characters/me/attributes",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/attributes",
               "host": ["{{baseUrl}}"],
-              "path": ["characters", "me", "attributes"]
+              "path": ["characters", "{{characterId}}", "attributes"]
             },
-            "description": "Distribui pontos de atributos do personagem logado.\n\n**Atributos válidos:** taijutsu, ninjutsu, genjutsu, intelligence, vitality, chakra, agility, luck"
+            "description": "Adiciona pontos aos atributos do personagem. Os valores são DELTAS (pontos a adicionar), não valores absolutos.\n\nExemplo: {\"taijutsu\": 2, \"ninjutsu\": 1} adiciona +2 em Taijutsu e +1 em Ninjutsu.\n\nAo subir de nível, os status derivados (HP, Chakra, Poder) são recalculados automaticamente.\n\n**Atributos válidos:** taijutsu, ninjutsu, genjutsu, intelligence, vitality, chakra, agility, luck\n\n**Regras:**\n- Não pode adicionar mais pontos do que possui (UnspentPoints)\n- Não pode usar valores negativos\n- Total de pontos gastos = soma de todos os valores enviados"
           },
           "response": []
         }
@@ -250,14 +270,13 @@
         {
           "name": "Listar Elementos",
           "request": {
-            "auth": { "type": "noauth" },
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/elements",
               "host": ["{{baseUrl}}"],
               "path": ["elements"]
             },
-            "description": "Lista todos os elementos disponíveis e o nível necessário para aprender o próximo.\n\nProgressão: nível 20 para o 1º, 30 para o 2º, 40 para o 3º, etc."
+            "description": "Lista todos os elementos disponíveis, o nível necessário para aprender o próximo e quais você já aprendeu (campo `learned` — requer autenticação para identificar o personagem).\n\n**Progressão:** nível 20 (1º), 27 (2º), 34 (3º), 41 (4º), 48 (5º)."
           },
           "response": []
         },
@@ -266,11 +285,11 @@
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{baseUrl}}/elements/{{element}}/learn",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/elements/{{element}}/learn",
               "host": ["{{baseUrl}}"],
-              "path": ["elements", "{{element}}", "learn"]
+              "path": ["characters", "{{characterId}}", "elements", "{{element}}", "learn"]
             },
-            "description": "Aprende um elemento para o personagem logado.\n\n**Elementos válidos:** Katon, Suiton, Doton, Fuuton, Raiton\n\n**Progressão:**\n- Nível 20: 1º elemento\n- Nível 30: 2º elemento\n- Nível 40: 3º elemento\n- Nível 50: 4º elemento\n- Nível 60: 5º elemento"
+            "description": "Aprende um elemento para o personagem.\n\n**Elementos válidos:** Katon, Suiton, Doton, Fuuton, Raiton\n\n**Progressão:**\n- Nível 20: 1º elemento\n- Nível 27: 2º elemento\n- Nível 34: 3º elemento\n- Nível 41: 4º elemento\n- Nível 48: 5º elemento"
           },
           "response": []
         }
@@ -298,11 +317,11 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/jutsus/me",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/jutsus",
               "host": ["{{baseUrl}}"],
-              "path": ["jutsus", "me"]
+              "path": ["characters", "{{characterId}}", "jutsus"]
             },
-            "description": "Lista os jutsus aprendidos pelo personagem logado, com status de equipado."
+            "description": "Lista os jutsus aprendidos pelo personagem, com status de equipado."
           },
           "response": []
         },
@@ -311,11 +330,11 @@
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{baseUrl}}/jutsus/{{jutsuId}}/learn",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/jutsus/{{jutsuId}}/learn",
               "host": ["{{baseUrl}}"],
-              "path": ["jutsus", "{{jutsuId}}", "learn"]
+              "path": ["characters", "{{characterId}}", "jutsus", "{{jutsuId}}", "learn"]
             },
-            "description": "O personagem logado aprende um jutsu pelo ID (GUID).\n\n**Restrições:**\n- Nível mínimo requerido\n- Graduação mínima requerida\n- Não pode aprender o mesmo jutsu duas vezes"
+            "description": "O personagem aprende um jutsu pelo ID (GUID).\n\n**Restrições:**\n- Nível mínimo requerido\n- Graduação mínima requerida\n- Não pode aprender o mesmo jutsu duas vezes"
           },
           "response": []
         },
@@ -324,11 +343,24 @@
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{baseUrl}}/jutsus/{{jutsuId}}/equip",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/jutsus/{{jutsuId}}/equip",
               "host": ["{{baseUrl}}"],
-              "path": ["jutsus", "{{jutsuId}}", "equip"]
+              "path": ["characters", "{{characterId}}", "jutsus", "{{jutsuId}}", "equip"]
             },
-            "description": "Equipa um jutsu já aprendido pelo ID (GUID).\n\nO jutsu precisa ter sido aprendido primeiro via POST /jutsus/{id}/learn."
+            "description": "Equipa um jutsu já aprendido pelo ID (GUID).\n\nO jutsu precisa ter sido aprendido primeiro via POST /characters/{characterId}/jutsus/{id}/learn."
+          },
+          "response": []
+        },
+        {
+          "name": "Desequipar Jutsu",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/characters/{{characterId}}/jutsus/{{jutsuId}}/unequip",
+              "host": ["{{baseUrl}}"],
+              "path": ["characters", "{{characterId}}", "jutsus", "{{jutsuId}}", "unequip"]
+            },
+            "description": "Desequipa um jutsu que está equipado pelo ID (GUID).\n\nO jutsu precisa estar equipado para ser desequipado."
           },
           "response": []
         }
@@ -356,11 +388,11 @@
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{baseUrl}}/missions/{{missionId}}/start",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/missions/{{missionId}}/start",
               "host": ["{{baseUrl}}"],
-              "path": ["missions", "{{missionId}}", "start"]
+              "path": ["characters", "{{characterId}}", "missions", "{{missionId}}", "start"]
             },
-            "description": "Inicia uma missão para o personagem logado.\n\n**Restrições:**\n- Não pode ter a mesma missão já ativa\n- Não pode estar em caçada\n- Precisa ter energia suficiente\n- Nível e graduação mínimos requeridos"
+            "description": "Inicia uma missão para o personagem.\n\n**Restrições:**\n- Não pode ter a mesma missão já ativa\n- Não pode estar em caçada\n- Precisa ter energia suficiente\n- Nível e graduação mínimos requeridos"
           },
           "response": []
         },
@@ -369,9 +401,9 @@
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{baseUrl}}/missions/{{missionId}}/complete",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/missions/{{missionId}}/complete",
               "host": ["{{baseUrl}}"],
-              "path": ["missions", "{{missionId}}", "complete"]
+              "path": ["characters", "{{characterId}}", "missions", "{{missionId}}", "complete"]
             },
             "description": "Conclui uma missão iniciada e recebe as recompensas (XP, Ryous, drops).\n\nSe a missão tem duração (DurationMinutes > 0), é preciso aguardar o tempo antes de concluir.\n\n**Durações por rank:**\n- Rank D: 1-2 min\n- Rank C: 5 min\n- Rank B: 15 min\n- Rank A: 30 min\n- Rank S: 60 min\n\nMissões de longa duração podem levar de 60 a 1200 minutos (20h)."
           },
@@ -387,9 +419,9 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/hunts/status",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/hunts/status",
               "host": ["{{baseUrl}}"],
-              "path": ["hunts", "status"]
+              "path": ["characters", "{{characterId}}", "hunts", "status"]
             },
             "description": "Retorna o status da caçada atual (ativa ou não), tempo restante, durações disponíveis e tempo total disponível hoje.\n\n**Campos de tempo disponível:**\n- `todayHuntsUsed`: quantas caçadas já foram feitas hoje\n- `todayHuntsRemaining`: quantas caçadas ainda pode fazer (limite diário: 10)\n- `totalAvailableMinutes`: minutos totais que ainda pode caçar hoje (restantes × duração máxima por nível)\n- `availableDurations`: durações individuais disponíveis (5, 10, 15, ... até o máximo do nível)"
           },
@@ -407,9 +439,9 @@
               "raw": "{\n  \"durationMinutes\": 5\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/hunts/start",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/hunts/start",
               "host": ["{{baseUrl}}"],
-              "path": ["hunts", "start"]
+              "path": ["characters", "{{characterId}}", "hunts", "start"]
             },
             "description": "Inicia uma caçada (PvE) com duração escolhida.\n\n**Duração:** 5 a 50 minutos, múltiplos de 5. O máximo é limitado pelo `totalAvailableMinutes` (minutos restantes hoje).\n\n**Bônus (caçadas mais curtas rendem mais por minuto):**\n- 5 min: +50% de recompensa\n- 10 min: +30%\n- 15 min: +15%\n- 20 min: +5%\n- 25+ min: recompensa base\n\n**Restrições:**\n- Limite de 10 caçadas por dia\n- Apenas 1 caçada ativa por vez\n- Caçada ativa bloqueia missões\n- A duração não pode ultrapassar o total de minutos disponíveis hoje\n- Recompensas aleatórias baseadas no nível de caçada"
           },
@@ -420,11 +452,56 @@
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{baseUrl}}/hunts/complete",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/hunts/complete",
               "host": ["{{baseUrl}}"],
-              "path": ["hunts", "complete"]
+              "path": ["characters", "{{characterId}}", "hunts", "complete"]
             },
             "description": "Conclui a caçada ativa se o tempo já tiver expirado e recebe as recompensas (XP + Ryous)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Batalhas",
+      "item": [
+        {
+          "name": "Batalha NPC",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"difficulty\": \"normal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/characters/{{characterId}}/battles/npc",
+              "host": ["{{baseUrl}}"],
+              "path": ["characters", "{{characterId}}", "battles", "npc"]
+            },
+            "description": "Inicia uma batalha instantânea contra um NPC.\n\n**Dificuldades:**\n- `easy`: NPC até 10 níveis abaixo. Recompensa baixa.\n- `normal`: NPC 1-3 níveis de diferença. Recompensa balanceada.\n- `hard`: NPC até 10 níveis acima. Recompensa alta.\n\n**Recompensas de XP e Ryous** escalam com o nível do NPC e a dificuldade."
+          },
+          "response": []
+        },
+        {
+          "name": "Batalha PvP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetName\": \"NomeDoPersonagem\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/characters/{{characterId}}/battles/pvp",
+              "host": ["{{baseUrl}}"],
+              "path": ["characters", "{{characterId}}", "battles", "pvp"]
+            },
+            "description": "Ataca outro jogador pelo nome do personagem.\n\n**Regras:**\n- Alvo não pode ter sido atacado nos últimos 10 minutos\n- Dificuldade baseada na diferença de nível (igual NPC)\n- Recompensa de Ryous: 5% a 10% do dinheiro que o alvo carrega (aleatório)\n- Recompensa de XP: equivalente à dificuldade (easy/normal/hard)\n- Não pode atacar o próprio personagem"
           },
           "response": []
         }
@@ -452,11 +529,11 @@
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{baseUrl}}/shop/buy/{{itemId}}",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/shop/buy/{{itemId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["shop", "buy", "{{itemId}}"]
+              "path": ["characters", "{{characterId}}", "shop", "buy", "{{itemId}}"]
             },
-            "description": "Compra um item da loja para o personagem logado.\n\n**Restrições:**\n- Precisa ter Ryous suficiente\n- O item vai para o inventário do personagem"
+            "description": "Compra um item da loja para o personagem.\n\n**Restrições:**\n- Precisa ter Ryous suficiente\n- O item vai para o inventário do personagem\n- Itens equipáveis são equipados automaticamente (substitui item no mesmo slot)"
           },
           "response": []
         },
@@ -465,11 +542,37 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/inventory",
+              "raw": "{{baseUrl}}/characters/{{characterId}}/inventory",
               "host": ["{{baseUrl}}"],
-              "path": ["inventory"]
+              "path": ["characters", "{{characterId}}", "inventory"]
             },
-            "description": "Lista os itens no inventário do personagem logado (com quantidade e status de equipado)."
+            "description": "Lista os itens no inventário do personagem (com nome, tipo, raridade, ícone, bônus, quantidade e status de equipado)."
+          },
+          "response": []
+        },
+        {
+          "name": "Equipar Item",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/characters/{{characterId}}/inventory/{{itemId}}/equip",
+              "host": ["{{baseUrl}}"],
+              "path": ["characters", "{{characterId}}", "inventory", "{{itemId}}", "equip"]
+            },
+            "description": "Equipa um item do inventário pelo ID.\n\n**Slot automático por tipo:**\n- Arma → Weapon\n- Armadura → Armor\n- Ferramenta → Tool\n- Invocação → Summon\n- Acessório → Accessory1 (se livre) → Accessory2 → substitui Accessory1\n\nSe já tiver item no mesmo slot, o antigo é desequipado automaticamente."
+          },
+          "response": []
+        },
+        {
+          "name": "Desequipar Item",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/characters/{{characterId}}/inventory/{{itemId}}/unequip",
+              "host": ["{{baseUrl}}"],
+              "path": ["characters", "{{characterId}}", "inventory", "{{itemId}}", "unequip"]
+            },
+            "description": "Desequipa um item do inventário pelo ID, liberando o slot para outro item."
           },
           "response": []
         }

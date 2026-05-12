@@ -30,7 +30,7 @@ public record BloodlineClanDto(
     string Id, string Name, string Description, string Bonus, string Symbol);
 
 public record ElementDto(
-    string Name, string Description, int RequiredLevel);
+    string Name, string Description, int RequiredLevel, bool Learned);
 
 public record LearnElementRequest(string Element);
 

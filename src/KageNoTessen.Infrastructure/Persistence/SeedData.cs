@@ -173,24 +173,56 @@ public static class SeedData
         }
 
         // Items
-        var items = new[]
+        var items = new (string Name, ItemType Type, ItemRarity Rarity, int Price, string Icon,
+            int Atk, int Def, int Int, int Agi, int Vit, int Chk, int Luk)[]
         {
-            (Name: "Kunai", Type: ItemType.Weapon, Rarity: ItemRarity.Common, Price: 50, Icon: "knife"),
-            (Name: "Shuriken", Type: ItemType.Weapon, Rarity: ItemRarity.Common, Price: 40, Icon: "disc-3"),
-            (Name: "Katana", Type: ItemType.Weapon, Rarity: ItemRarity.Rare, Price: 500, Icon: "sword"),
-            (Name: "Colete Chunin", Type: ItemType.Armor, Rarity: ItemRarity.Uncommon, Price: 300, Icon: "shield"),
-            (Name: "Bandana Ninja", Type: ItemType.Accessory, Rarity: ItemRarity.Common, Price: 100, Icon: "headphones"),
-            (Name: "Pílula de Soldado", Type: ItemType.Consumable, Rarity: ItemRarity.Uncommon, Price: 80, Icon: "pill"),
-            (Name: "Antídoto", Type: ItemType.Consumable, Rarity: ItemRarity.Common, Price: 30, Icon: "flask"),
-            (Name: "Papel Bomba", Type: ItemType.Tool, Rarity: ItemRarity.Uncommon, Price: 120, Icon: "file-warning"),
-            (Name: "Pergaminho de Selamento", Type: ItemType.Tool, Rarity: ItemRarity.Rare, Price: 400, Icon: "scroll"),
-            (Name: "Senbon", Type: ItemType.Weapon, Rarity: ItemRarity.Common, Price: 25, Icon: "pin"),
+            // Weapons — foco em ataque e agilidade
+            ("Kunai", ItemType.Weapon, ItemRarity.Common, 50, "knife",
+                Atk: 5, Def: 0, Int: 0, Agi: 2, Vit: 0, Chk: 0, Luk: 0),
+            ("Shuriken", ItemType.Weapon, ItemRarity.Common, 40, "disc-3",
+                Atk: 3, Def: 0, Int: 0, Agi: 3, Vit: 0, Chk: 0, Luk: 1),
+            ("Senbon", ItemType.Weapon, ItemRarity.Common, 25, "pin",
+                Atk: 2, Def: 0, Int: 0, Agi: 4, Vit: 0, Chk: 0, Luk: 0),
+            ("Katana", ItemType.Weapon, ItemRarity.Rare, 500, "sword",
+                Atk: 20, Def: 0, Int: 0, Agi: 5, Vit: 0, Chk: 0, Luk: 0),
+            ("Espada Lendária — Kusanagi", ItemType.Weapon, ItemRarity.Legendary, 5000, "sword",
+                Atk: 50, Def: 0, Int: 10, Agi: 15, Vit: 0, Chk: 20, Luk: 5),
+            // Armaduras — foco em defesa e vitalidade
+            ("Colete Chunin", ItemType.Armor, ItemRarity.Uncommon, 300, "shield",
+                Atk: 0, Def: 15, Int: 0, Agi: 0, Vit: 10, Chk: 0, Luk: 0),
+            ("Armadura Jounin", ItemType.Armor, ItemRarity.Rare, 1200, "shield",
+                Atk: 0, Def: 30, Int: 5, Agi: 0, Vit: 20, Chk: 10, Luk: 0),
+            ("Manto ANBU", ItemType.Armor, ItemRarity.Epic, 3000, "shield",
+                Atk: 10, Def: 40, Int: 10, Agi: 10, Vit: 25, Chk: 15, Luk: 5),
+            ("Armadura de Kage", ItemType.Armor, ItemRarity.Legendary, 10000, "shield",
+                Atk: 15, Def: 60, Int: 15, Agi: 15, Vit: 40, Chk: 25, Luk: 10),
+            // Acessórios — foco em inteligência e sorte
+            ("Bandana Ninja", ItemType.Accessory, ItemRarity.Common, 100, "headphones",
+                Atk: 0, Def: 0, Int: 3, Agi: 0, Vit: 0, Chk: 0, Luk: 2),
+            ("Anel de Chakra", ItemType.Accessory, ItemRarity.Uncommon, 350, "circle",
+                Atk: 0, Def: 0, Int: 5, Agi: 0, Vit: 0, Chk: 10, Luk: 0),
+            ("Pingente da Sorte", ItemType.Accessory, ItemRarity.Rare, 800, "gem",
+                Atk: 0, Def: 0, Int: 5, Agi: 0, Vit: 0, Chk: 5, Luk: 15),
+            ("Olho do Dragão", ItemType.Accessory, ItemRarity.Epic, 2500, "eye",
+                Atk: 5, Def: 0, Int: 20, Agi: 5, Vit: 0, Chk: 20, Luk: 10),
+            // Ferramentas — bônus variados
+            ("Papel Bomba", ItemType.Tool, ItemRarity.Uncommon, 120, "file-warning",
+                Atk: 10, Def: 0, Int: 0, Agi: 0, Vit: 0, Chk: 0, Luk: 0),
+            ("Pergaminho de Selamento", ItemType.Tool, ItemRarity.Rare, 400, "scroll",
+                Atk: 0, Def: 5, Int: 15, Agi: 0, Vit: 0, Chk: 15, Luk: 0),
         };
-        foreach (var (name, type, rarity, price, icon) in items)
+        foreach (var (name, type, rarity, price, icon, atk, def, intel, agi, vit, chk, luk) in items)
         {
             var item = Item.Create(name, type, rarity, $"{GetRarityLabelPt(rarity)} — {name} ninja", price, icon);
             item.Equippable = type is ItemType.Weapon or ItemType.Armor or ItemType.Accessory or ItemType.Summon;
-            item.Consumable = type == ItemType.Consumable;
+            item.Consumable = false;
+            item.AttackBonus = atk;
+            item.DefenseBonus = def;
+            item.IntelligenceBonus = intel;
+            item.AgilityBonus = agi;
+            item.VitalityBonus = vit;
+            item.ChakraBonus = chk;
+            item.LuckBonus = luk;
             db.Items.Add(item);
         }
 

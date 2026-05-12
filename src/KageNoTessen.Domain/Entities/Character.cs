@@ -21,6 +21,7 @@ public class Character : AuditableEntity
     public int Power { get; private set; }
     public int UnspentPoints { get; private set; } = 10;
     public bool Active { get; set; } = true;
+    public DateTime? LastPvPAttackedAt { get; set; }
 
     public CharacterAttributes Attributes { get; private set; } = null!;
     public User User { get; private set; } = null!;
@@ -70,6 +71,7 @@ public class Character : AuditableEntity
         Level++;
         XpToNext = 100 + Level * 50;
         UnspentPoints += 3;
+        while (CanGraduate()) Graduate();
         ApplyDerivedAttributes();
         Hp = HpMax;
         Chakra = ChakraMax;
@@ -108,6 +110,7 @@ public class Character : AuditableEntity
 
     public void AddRyous(int amount) => Ryous += amount;
     public bool SpendRyous(int amount) { if (Ryous < amount) return false; Ryous -= amount; return true; }
+    public void LoseRyous(int amount) => Ryous = Math.Max(0, Ryous - amount);
     public bool SpendEnergy(int amount) { if (Energy < amount) return false; Energy -= amount; return true; }
     public void RestoreEnergy(int amount) => Energy = Math.Min(EnergyMax, Energy + amount);
     public void TakeDamage(int damage) => Hp = Math.Max(0, Hp - damage);

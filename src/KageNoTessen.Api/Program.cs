@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using KageNoTessen.Application;
+using KageNoTessen.Application.Battle;
 using Microsoft.EntityFrameworkCore;
 using KageNoTessen.Infrastructure;
 using KageNoTessen.Infrastructure.Persistence;
@@ -25,6 +26,7 @@ var config = builder.Configuration;
 var jwtSecret = config["Jwt:Secret"]!;
 
 builder.Services.AddInfrastructure(config);
+builder.Services.Configure<CombatBalanceOptions>(config.GetSection(CombatBalanceOptions.Section));
 builder.Services.AddApplication();
 
 builder.Services.AddFastEndpoints();

@@ -97,6 +97,12 @@ src/
 | POST | `/api/hunts/start` | Autenticado |
 | POST | `/api/hunts/complete` | Autenticado |
 
+### Batalhas
+| Método | Rota | Auth |
+|--------|------|------|
+| POST | `/api/battles/npc` | Autenticado |
+| POST | `/api/battles/pvp` | Autenticado |
+
 ### Loja e Inventário
 | Método | Rota | Auth |
 |--------|------|------|
