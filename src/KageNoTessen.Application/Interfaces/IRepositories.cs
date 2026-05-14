@@ -15,6 +15,8 @@ public interface ICharacterRepository : IRepository<Character>
     Task<Character?> GetByUserIdAsync(Guid userId, CancellationToken ct = default);
     Task<Character?> GetByNameAsync(string name, CancellationToken ct = default);
     Task<List<Character>> GetByUserIdAllAsync(Guid userId, CancellationToken ct = default);
+    Task<List<Character>> ListAllWithVillageAndClanAsync(CancellationToken ct = default);
+    Task LoadReferencesAsync(Character character, CancellationToken ct = default);
 }
 
 public interface IVillageRepository : IRepository<Village>

@@ -3,6 +3,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using MediatR;
 using KageNoTessen.Application.Auth;
+using KageNoTessen.Application.Interfaces;
 using KageNoTessen.Contracts.Auth;
 
 namespace KageNoTessen.Api.Endpoints;
@@ -121,8 +122,11 @@ public class MeEndpoint : EndpointWithoutRequest<UserDto>
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
-        var email = HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Email)!;
+        var repo = Resolve<KageNoTessen.Application.Interfaces.IUserRepository>();
+        var user = await repo.GetByIdAsync(userId, ct);
+        if (user is null) { await SendNotFoundAsync(ct); return; }
+
         var role = HttpContext.User.FindFirstValue(ClaimTypes.Role)!;
-        await SendOkAsync(new UserDto(userId, email, "", role, DateTime.MinValue, null), ct);
+        await SendOkAsync(new UserDto(user.Id, user.Email, user.Name, role, user.CreatedAt, user.LastLoginAt), ct);
     }
 }

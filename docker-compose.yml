@@ -19,7 +19,7 @@ services:
       - Jwt__Issuer=KageNoTessen
       - Jwt__Audience=KageNoTessen
       - Jwt__ExpiryMinutes=60
-      - Cors__Origins=http://localhost:5173
+      - Cors__Origins=http://localhost:5173,http://localhost:8080
     restart: unless-stopped
 
   postgres:

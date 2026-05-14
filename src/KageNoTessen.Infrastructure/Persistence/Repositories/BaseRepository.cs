@@ -68,6 +68,14 @@ public class CharacterRepository : BaseRepository<Character>, ICharacterReposito
 {
     public CharacterRepository(AppDbContext db) : base(db) { }
 
+    public override async Task<List<Character>> ListAsync(CancellationToken ct = default)
+        => await Set.AsNoTracking()
+            .Include(c => c.Village)
+            .Include(c => c.Clan)
+            .Include(c => c.Attributes)
+            .Include(c => c.CharacterElements)
+            .ToListAsync(ct);
+
     public async Task<Character?> GetWithDetailsAsync(Guid id, CancellationToken ct = default)
         => await Set
             .Include(c => c.Attributes)
@@ -77,8 +85,16 @@ public class CharacterRepository : BaseRepository<Character>, ICharacterReposito
             .Include(c => c.CharacterElements)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
+    public async Task LoadReferencesAsync(Character character, CancellationToken ct = default)
+    {
+        await Db.Entry(character).Reference(c => c.Village).LoadAsync(ct);
+        await Db.Entry(character).Reference(c => c.Clan).LoadAsync(ct);
+        await Db.Entry(character).Reference(c => c.Attributes).LoadAsync(ct);
+        await Db.Entry(character).Collection(c => c.CharacterElements).LoadAsync(ct);
+    }
+
     public async Task<Character?> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
-        => await Set
+        => await Set.AsNoTracking()
             .Include(c => c.Attributes)
             .Include(c => c.Village)
             .Include(c => c.Clan)
@@ -89,7 +105,7 @@ public class CharacterRepository : BaseRepository<Character>, ICharacterReposito
             .FirstOrDefaultAsync(c => c.UserId == userId && c.Active, ct);
 
     public async Task<Character?> GetByNameAsync(string name, CancellationToken ct = default)
-        => await Set
+        => await Set.AsNoTracking()
             .Include(c => c.Attributes)
             .Include(c => c.Village)
             .Include(c => c.Clan)
@@ -101,6 +117,9 @@ public class CharacterRepository : BaseRepository<Character>, ICharacterReposito
 
     public async Task<List<Character>> GetByUserIdAllAsync(Guid userId, CancellationToken ct = default)
         => await Set.AsNoTracking().Where(c => c.UserId == userId).ToListAsync(ct);
+
+    public async Task<List<Character>> ListAllWithVillageAndClanAsync(CancellationToken ct = default)
+        => await Set.AsNoTracking().Include(c => c.Village).Include(c => c.Clan).ToListAsync(ct);
 }
 
 public class JutsuRepository : BaseRepository<Jutsu>, IJutsuRepository
@@ -222,7 +241,7 @@ public class PlayerClanRepository : BaseRepository<PlayerClan>, IPlayerClanRepos
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
     public async Task<PlayerClan?> GetByCharacterIdAsync(Guid characterId, CancellationToken ct = default)
-        => await Set.AsNoTracking().Include(c => c.Members)
+        => await Set.AsNoTracking().Include(c => c.Members).Include(c => c.Wall)
             .FirstOrDefaultAsync(c => c.Members.Any(m => m.CharacterId == characterId), ct);
 
     public async Task<List<PlayerClan>> GetRankingAsync(int limit = 100, CancellationToken ct = default)

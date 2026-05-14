@@ -46,6 +46,7 @@ public class CharacterHandler :
         var character = Character.Create(cmd.UserId, cmd.Name, cmd.Avatar,
             cmd.VillageId, cmd.ClanId);
         await _characters.AddAsync(character, ct);
+        await _characters.LoadReferencesAsync(character, ct);
         return Map(character);
     }
 
@@ -108,7 +109,7 @@ public class CharacterHandler :
 
     private CharacterDto Map(Character c) => new(
         c.Id.ToString(), c.UserId.ToString(), c.Name, c.Avatar,
-        c.VillageId.ToString(), c.ClanId.ToString(),
+        c.Village.Name.ToLower(), c.Clan.Name.ToLower(),
         c.CharacterElements.Select(e => e.Element.ToString()).ToArray(),
         c.Graduation.ToString(), c.Level, c.Xp, c.XpToNext,
         c.Hp, c.HpMax, c.Chakra, c.ChakraMax,

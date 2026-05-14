@@ -5,6 +5,7 @@ using MediatR;
 using KageNoTessen.Application.Characters;
 using KageNoTessen.Application.Interfaces;
 using KageNoTessen.Contracts.Characters;
+using KageNoTessen.Domain;
 namespace KageNoTessen.Api.Endpoints;
 
 public class CreateCharacterEndpoint : Endpoint<CreateCharacterRequest, CharacterDto>
@@ -23,19 +24,19 @@ public class CreateCharacterEndpoint : Endpoint<CreateCharacterRequest, Characte
         var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
 
         var villageRepo = Resolve<IVillageRepository>();
-        var village = await villageRepo.GetByNameAsync(Capitalize(req.VillageId), ct);
+        var village = await FindVillage(villageRepo, req.VillageId, ct);
         if (village is null)
         {
-            AddError(r => r.VillageId, $"Vila '{req.VillageId}' não encontrada. Use: konoha, suna, kiri, kumo, iwa, ame, oto.");
+            AddError(r => r.VillageId, $"Vila '{req.VillageId}' não encontrada.");
             await SendErrorsAsync(cancellation: ct);
             return;
         }
 
         var clanRepo = Resolve<IBloodlineClanRepository>();
-        var clan = await clanRepo.GetByNameAsync(Capitalize(req.ClanId), ct);
+        var clan = await FindClan(clanRepo, req.ClanId, ct);
         if (clan is null)
         {
-            AddError(r => r.ClanId, $"Clã '{req.ClanId}' não encontrado. Use: uchiha, hyuga, uzumaki, senju, nara, akimichi, etc.");
+            AddError(r => r.ClanId, $"Clã '{req.ClanId}' não encontrado.");
             await SendErrorsAsync(cancellation: ct);
             return;
         }
@@ -44,6 +45,21 @@ public class CreateCharacterEndpoint : Endpoint<CreateCharacterRequest, Characte
             village.Id, clan.Id);
         var result = await Resolve<IMediator>().Send(cmd, ct);
         await SendCreatedAtAsync<GetCharacterEndpoint>(new { result.Id }, result, cancellation: ct);
+    }
+
+    /// Aceita tanto GUID (vindo do frontend via GET /villages) quanto nome (legado).
+    private static async Task<Village?> FindVillage(IVillageRepository repo, string idOrName, CancellationToken ct)
+    {
+        if (Guid.TryParse(idOrName, out var guid))
+            return await repo.GetByIdAsync(guid, ct);
+        return await repo.GetByNameAsync(Capitalize(idOrName), ct);
+    }
+
+    private static async Task<BloodlineClan?> FindClan(IBloodlineClanRepository repo, string idOrName, CancellationToken ct)
+    {
+        if (Guid.TryParse(idOrName, out var guid))
+            return await repo.GetByIdAsync(guid, ct);
+        return await repo.GetByNameAsync(Capitalize(idOrName), ct);
     }
 
     private static string Capitalize(string s) =>
