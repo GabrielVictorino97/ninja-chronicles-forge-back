@@ -15,6 +15,8 @@ public record UpdateAttributesCommand(
 
 public record GetMyCharacterQuery(Guid UserId) : IRequest<CharacterDto?>;
 
+public record GetMyCharactersQuery(Guid UserId) : IRequest<List<CharacterDto>>;
+
 public record GetCharacterQuery(Guid CharacterId) : IRequest<CharacterDto?>;
 
 public class CreateCharacterValidator : AbstractValidator<CreateCharacterCommand>
@@ -30,6 +32,7 @@ public class CharacterHandler :
     IRequestHandler<CreateCharacterCommand, CharacterDto>,
     IRequestHandler<UpdateAttributesCommand, CharacterDto>,
     IRequestHandler<GetMyCharacterQuery, CharacterDto?>,
+    IRequestHandler<GetMyCharactersQuery, List<CharacterDto>>,
     IRequestHandler<GetCharacterQuery, CharacterDto?>
 {
     private readonly ICharacterRepository _characters;
@@ -99,6 +102,12 @@ public class CharacterHandler :
     {
         var c = await _characters.GetByUserIdAsync(query.UserId, ct);
         return c is null ? null : Map(c);
+    }
+
+    public async Task<List<CharacterDto>> Handle(GetMyCharactersQuery query, CancellationToken ct)
+    {
+        var chars = await _characters.GetByUserIdAllAsync(query.UserId, ct);
+        return chars.Select(Map).ToList();
     }
 
     public async Task<CharacterDto?> Handle(GetCharacterQuery query, CancellationToken ct)

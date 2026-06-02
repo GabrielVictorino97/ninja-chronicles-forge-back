@@ -116,7 +116,13 @@ public class CharacterRepository : BaseRepository<Character>, ICharacterReposito
             .FirstOrDefaultAsync(c => c.Name == name && c.Active, ct);
 
     public async Task<List<Character>> GetByUserIdAllAsync(Guid userId, CancellationToken ct = default)
-        => await Set.AsNoTracking().Where(c => c.UserId == userId).ToListAsync(ct);
+        => await Set.AsNoTracking()
+            .Where(c => c.UserId == userId && c.Active)
+            .Include(c => c.Village)
+            .Include(c => c.Clan)
+            .Include(c => c.Attributes)
+            .Include(c => c.CharacterElements)
+            .ToListAsync(ct);
 
     public async Task<List<Character>> ListAllWithVillageAndClanAsync(CancellationToken ct = default)
         => await Set.AsNoTracking().Include(c => c.Village).Include(c => c.Clan).ToListAsync(ct);

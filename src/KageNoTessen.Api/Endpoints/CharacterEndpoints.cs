@@ -85,6 +85,24 @@ public class GetMyCharacterEndpoint : EndpointWithoutRequest<CharacterDto>
     }
 }
 
+public class GetMyCharactersEndpoint : EndpointWithoutRequest<List<CharacterDto>>
+{
+    public override void Configure()
+    {
+        Get("characters");
+        Description(d => d
+            .WithName("MeusPersonagens")
+            .WithSummary("Lista todos os personagens do usuário logado"));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var userId = Guid.Parse(HttpContext.User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+        var result = await Resolve<IMediator>().Send(new GetMyCharactersQuery(userId), ct);
+        await SendOkAsync(result, ct);
+    }
+}
+
 public class GetCharacterEndpoint : EndpointWithoutRequest<CharacterDto>
 {
     public override void Configure()
